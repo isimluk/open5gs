@@ -138,8 +138,7 @@ int ogs_gtp_context_parse_config(const char *local, const char *remote)
                                         family, AF_UNSPEC, AF_INET, AF_INET6);
                                     family = AF_UNSPEC;
                                 }
-                            } else if (!strcmp(gtpc_key, "addr") ||
-                                    !strcmp(gtpc_key, "name")) {
+                            } else if (!strcmp(gtpc_key, "address")) {
                                 ogs_yaml_iter_t hostname_iter;
                                 ogs_yaml_iter_recurse(&gtpc_iter,
                                         &hostname_iter);
@@ -210,16 +209,6 @@ int ogs_gtp_context_parse_config(const char *local, const char *remote)
                     } while (ogs_yaml_iter_type(&gtpc_array) ==
                             YAML_SEQUENCE_NODE);
 
-                    if (ogs_list_empty(&self.gtpc_list) &&
-                        ogs_list_empty(&self.gtpc_list6)) {
-                        rv = ogs_socknode_probe(
-                                ogs_app()->parameter.no_ipv4 ?
-                                    NULL : &self.gtpc_list,
-                                ogs_app()->parameter.no_ipv6 ?
-                                    NULL : &self.gtpc_list6,
-                                NULL, self.gtpc_port, NULL);
-                        ogs_assert(rv == OGS_OK);
-                    }
                 } else if (!strcmp(local_key, "gtpu")) {
                     ogs_list_t list, list6;
                     ogs_socknode_t *node = NULL, *node6 = NULL;
@@ -286,8 +275,7 @@ int ogs_gtp_context_parse_config(const char *local, const char *remote)
                                         family, AF_UNSPEC, AF_INET, AF_INET6);
                                     family = AF_UNSPEC;
                                 }
-                            } else if (!strcmp(gtpu_key, "addr") ||
-                                    !strcmp(gtpu_key, "name")) {
+                            } else if (!strcmp(gtpu_key, "address")) {
                                 ogs_yaml_iter_t hostname_iter;
                                 ogs_yaml_iter_recurse(
                                         &gtpu_iter, &hostname_iter);
@@ -474,44 +462,6 @@ int ogs_gtp_context_parse_config(const char *local, const char *remote)
 
                     } while (ogs_yaml_iter_type(&gtpu_array) ==
                             YAML_SEQUENCE_NODE);
-
-                    if (ogs_list_first(&self.gtpu_list) == NULL) {
-                        ogs_list_init(&list);
-                        ogs_list_init(&list6);
-
-                        rv = ogs_socknode_probe(
-                                ogs_app()->parameter.no_ipv4 ? NULL : &list,
-                                ogs_app()->parameter.no_ipv6 ? NULL : &list6,
-                                NULL, self.gtpu_port, NULL);
-                        ogs_assert(rv == OGS_OK);
-
-                        /*
-                         * The first tuple IPv4/IPv6 are added
-                         * in User Plane IP resource information.
-                         *
-                         * TEID Range, Network Instance, Source Interface
-                         * cannot be configured in automatic IP detection.
-                         */
-                        node = ogs_list_first(&list);
-                        node6 = ogs_list_first(&list6);
-                        if (node || node6) {
-                            ogs_user_plane_ip_resource_info_t info;
-
-                            memset(&info, 0, sizeof(info));
-                            ogs_sockaddr_to_user_plane_ip_resource_info(
-                                    node ? node->addr : NULL,
-                                    node6 ? node6->addr : NULL,
-                                    &info);
-
-                            ogs_gtpu_resource_add(
-                                &self.gtpu_resource_list, &info);
-                        }
-
-                        ogs_list_for_each_safe(&list, next_iter, iter)
-                            ogs_list_add(&self.gtpu_list, iter);
-                        ogs_list_for_each_safe(&list6, next_iter, iter)
-                            ogs_list_add(&self.gtpu_list, iter);
-                    }
                 }
             }
         }

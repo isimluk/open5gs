@@ -332,24 +332,18 @@ char *ogs_uridup(
 char *ogs_sbi_server_uri(ogs_sbi_server_t *server, ogs_sbi_header_t *h)
 {
     ogs_sockaddr_t *advertise = NULL;
-    OpenAPI_uri_scheme_e scheme = OpenAPI_uri_scheme_NULL;
 
     ogs_assert(server);
-
-    if (ogs_app()->sbi.server.no_tls == false)
-        scheme = OpenAPI_uri_scheme_https;
-    else
-        scheme = OpenAPI_uri_scheme_http;
 
     advertise = server->advertise;
     if (!advertise)
         advertise = server->node.addr;
     ogs_assert(advertise);
 
-    return ogs_sbi_sockaddr_uri(scheme, advertise, h);
+    return ogs_sbi_sockaddr_uri(server->scheme, advertise, h);
 }
 
-static uint16_t get_port_from_scheme_and_addr(
+uint16_t ogs_sbi_uri_port_from_scheme_and_addr(
         OpenAPI_uri_scheme_e scheme, ogs_sockaddr_t *addr)
 {
     uint16_t port = 0;
@@ -396,9 +390,9 @@ char *ogs_sbi_sockaddr_uri(
     ogs_assert(rv == OGS_OK);
 
     if (addr6)
-        port = get_port_from_scheme_and_addr(scheme, addr6);
+        port = ogs_sbi_uri_port_from_scheme_and_addr(scheme, addr6);
     else if (addr)
-        port = get_port_from_scheme_and_addr(scheme, addr);
+        port = ogs_sbi_uri_port_from_scheme_and_addr(scheme, addr);
 
     uri = ogs_uridup(scheme, hostname, addr, addr6, port, h);
 
@@ -410,30 +404,24 @@ char *ogs_sbi_sockaddr_uri(
 
 char *ogs_sbi_client_uri(ogs_sbi_client_t *client, ogs_sbi_header_t *h)
 {
-    OpenAPI_uri_scheme_e scheme = OpenAPI_uri_scheme_NULL;
     uint16_t port = 0;
 
     ogs_assert(client);
-
-    if (ogs_app()->sbi.server.no_tls == false)
-        scheme = OpenAPI_uri_scheme_https;
-    else
-        scheme = OpenAPI_uri_scheme_http;
 
     if (client->fqdn) {
         port = client->fqdn_port;
     } else {
         if (client->addr6) {
-            port = get_port_from_scheme_and_addr(scheme, client->addr6);
+            port = ogs_sbi_uri_port_from_scheme_and_addr(
+                    client->scheme, client->addr6);
         } else if (client->addr) {
-            port = get_port_from_scheme_and_addr(scheme, client->addr);
+            port = ogs_sbi_uri_port_from_scheme_and_addr(
+                    client->scheme, client->addr);
         }
     }
 
     return ogs_uridup(
-            scheme, client->fqdn,
-            client->addr, client->addr6, port,
-            h);
+            client->scheme, client->fqdn, client->addr, client->addr6, port, h);
 }
 
 char *ogs_sbi_client_apiroot(ogs_sbi_client_t *client)

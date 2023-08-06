@@ -68,7 +68,7 @@ void af_nbsf_management_handle_pcf_binding(
 
         if (sess->pcf.num_of_ip < OGS_SBI_MAX_NUM_OF_IP_ADDRESS) {
             if (!IpEndPoint->is_port)
-                port = ogs_sbi_client_default_port();
+                port = ogs_sbi_default_client_port(OpenAPI_uri_scheme_NULL);
             else
                 port = IpEndPoint->port;
 

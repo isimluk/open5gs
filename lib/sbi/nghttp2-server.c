@@ -312,51 +312,47 @@ static int server_start(ogs_sbi_server_t *server,
     ogs_assert(addr);
 
     /* Create SSL CTX */
-    if (ogs_app()->sbi.server.no_tls == false) {
+    if (server->scheme == OpenAPI_uri_scheme_https) {
 
-        server->ssl_ctx = create_ssl_ctx(
-                    ogs_app()->sbi.server.key,
-                    ogs_app()->sbi.server.cert);
+        server->ssl_ctx = create_ssl_ctx(server->private_key, server->cert);
         if (!server->ssl_ctx) {
             ogs_error("Cannot create SSL CTX");
             return OGS_ERROR;
         }
 
-        if (ogs_app()->sbi.server.no_verify == false) {
-            if (ogs_app()->sbi.server.cacert) {
-                STACK_OF(X509_NAME) *cert_names = NULL;
+        if (server->verify_client_cacert) {
+            STACK_OF(X509_NAME) *cert_names = NULL;
 
-                if (SSL_CTX_load_verify_locations(server->ssl_ctx,
-                        ogs_app()->sbi.server.cacert, NULL) != 1) {
-                    ogs_error("Could not load trusted ca certificates "
-                            "from %s:%s", ogs_app()->sbi.server.cacert,
-                            ERR_error_string(ERR_get_error(), NULL));
-
-                    if (server->ssl_ctx)
-                        SSL_CTX_free(server->ssl_ctx);
-
-                    return OGS_ERROR;
-                }
-
-                /*
-                 * It is heard that SSL_CTX_load_verify_locations() may leave
-                 * error even though it returns success. See
-                 * http://forum.nginx.org/read.php?29,242540
-                 */
-                cert_names = SSL_load_client_CA_file(
-                        ogs_app()->sbi.server.cacert);
-                if (!cert_names) {
-                    ogs_error("Could not load ca certificates from %s:%s",
-                        ogs_app()->sbi.server.cacert,
+            if (SSL_CTX_load_verify_locations(
+                        server->ssl_ctx,
+                        server->verify_client_cacert, NULL) != 1) {
+                ogs_error("Could not load trusted ca certificates from %s:%s",
+                        server->verify_client_cacert,
                         ERR_error_string(ERR_get_error(), NULL));
 
-                    if (server->ssl_ctx)
-                        SSL_CTX_free(server->ssl_ctx);
+                if (server->ssl_ctx)
+                    SSL_CTX_free(server->ssl_ctx);
 
-                    return OGS_ERROR;
-                }
-                SSL_CTX_set_client_CA_list(server->ssl_ctx, cert_names);
+                return OGS_ERROR;
             }
+
+            /*
+             * It is heard that SSL_CTX_load_verify_locations() may leave
+             * error even though it returns success. See
+             * http://forum.nginx.org/read.php?29,242540
+             */
+            cert_names = SSL_load_client_CA_file(server->verify_client_cacert);
+            if (!cert_names) {
+                ogs_error("Could not load ca certificates from %s:%s",
+                    server->verify_client_cacert,
+                    ERR_error_string(ERR_get_error(), NULL));
+
+                if (server->ssl_ctx)
+                    SSL_CTX_free(server->ssl_ctx);
+
+                return OGS_ERROR;
+            }
+            SSL_CTX_set_client_CA_list(server->ssl_ctx, cert_names);
 
             SSL_CTX_set_verify(
                     server->ssl_ctx,

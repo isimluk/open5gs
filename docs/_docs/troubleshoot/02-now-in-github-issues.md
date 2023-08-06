@@ -310,31 +310,27 @@ To add a slice with SST of 1 and SD of 000080, you need to update the configurat
 ### amf.yaml
 
 $ diff --git a/configs/open5gs/amf.yaml.in b/configs/open5gs/amf.yaml.in
-index 7e939e81..dfe4456d 100644
+index a70143f08..e0dba560c 100644
 --- a/configs/open5gs/amf.yaml.in
 +++ b/configs/open5gs/amf.yaml.in
-@@ -315,6 +315,12 @@ amf:
-           mnc: 70
-         s_nssai:
-           - sst: 1
-+      - plmn_id:
-+          mcc: 999
-+          mnc: 70
-+        s_nssai:
-+          - sst: 1
-+            sd: 000080
-     security:
-         integrity_order : [ NIA2, NIA1, NIA0 ]
-         ciphering_order : [ NEA0, NEA1, NEA2 ]
+@@ -1,6 +1,6 @@
+ logger:
+     file: @localstatedir@/log/open5gs/amf.log
+-#    level: info   # fatal|error|warn|info(default)|debug|trace
++    level: debug
+
+ max:
+     ue: 1024  # The number of UE can be increased depending on memory size.
+
 
 ### FIRST smf.yaml
 
 $ diff --git a/configs/open5gs/smf.yaml.in b/configs/open5gs/smf.yaml.in
-index d45aa60f..701ee533 100644
+index 82e3b3cad..af5a26625 100644
 --- a/configs/open5gs/smf.yaml.in
 +++ b/configs/open5gs/smf.yaml.in
-@@ -442,6 +442,11 @@ logger:
- #
+@@ -7,6 +7,11 @@ max:
+ #    peer: 64
 
  smf:
 +    info:
@@ -343,17 +339,18 @@ index d45aa60f..701ee533 100644
 +            dnn:
 +              - internet
      sbi:
-       - addr: 127.0.0.4
+       - address: 127.0.0.4
          port: 7777
+
 
 ### SECOND smf.yaml
 
 $ diff --git a/configs/open5gs/smf.yaml.in b/configs/open5gs/smf.yaml.in
-index d45aa60f..949da220 100644
+index 82e3b3cad..6041431cc 100644
 --- a/configs/open5gs/smf.yaml.in
 +++ b/configs/open5gs/smf.yaml.in
-@@ -442,6 +442,12 @@ logger:
- #
+@@ -7,6 +7,12 @@ max:
+ #    peer: 64
 
  smf:
 +    info:
@@ -363,27 +360,28 @@ index d45aa60f..949da220 100644
 +            dnn:
 +              - internet
      sbi:
-       - addr: 127.0.0.4
+       - address: 127.0.0.4
          port: 7777
 
+
 ### nssf.yaml
+
 $ diff --git a/configs/open5gs/nssf.yaml.in b/configs/open5gs/nssf.yaml.in
-index ecd4f7e2..04d9c4ba 100644
+index 3166ebb1c..8a016e329 100644
 --- a/configs/open5gs/nssf.yaml.in
 +++ b/configs/open5gs/nssf.yaml.in
-@@ -201,6 +201,12 @@ nssf:
-         port: 7777
+@@ -18,6 +18,11 @@ nssf:
+       - uri: http://127.0.0.10:7777
          s_nssai:
            sst: 1
-+      - addr: 127.0.0.10
-+        port: 7777
++      - uri: http://127.0.0.10:7777
 +        s_nssai:
 +          sst: 1
 +          sd: 000080
 +
-
- #
- # scp:
+ ################################################################################
+ # Network Slice Instance(NSI)
+ ################################################################################
 ```
 
 Then add a slice to MongoDB's subscriber info.
@@ -434,41 +432,23 @@ However, among these, SMF and UPF are used by both 4G EPC and 5G Core. And SMF h
 To prevent SMF from attempting to access the 5G NRF, you need to modify the SMF configuration file as below.
 
 ```diff
-$ diff -u ./install/etc/open5gs/smf.yaml.old ./install/etc/open5gs/smf.yaml
---- ./install/etc/open5gs/smf.yaml.old 2020-10-08 14:43:20.599734045 -0400
-+++ ./install/etc/open5gs/smf.yaml 2020-10-08 14:44:21.864952687 -0400
-@@ -168,9 +168,9 @@
- #      - ::1
- #
+$ diff --git a/configs/open5gs/smf.yaml.in b/configs/open5gs/smf.yaml.in
+index 82e3b3cad..828aede85 100644
+--- a/configs/open5gs/smf.yaml.in
++++ b/configs/open5gs/smf.yaml.in
+@@ -7,9 +7,9 @@ max:
+ #    peer: 64
+
  smf:
 -    sbi:
--      - addr: 127.0.0.4
+-      - address: 127.0.0.4
 -        port: 7777
 +#    sbi:
-+#      - addr: 127.0.0.4
++#      - address: 127.0.0.4
 +#        port: 7777
-     gtpc:
-       - addr: 127.0.0.4
-       - addr: ::1
-@@ -214,12 +214,12 @@
- #        - 127.0.0.10
- #        - fe80::1%lo
- #
--nrf:
--    sbi:
--      - addr:
--          - 127.0.0.10
--          - ::1
--        port: 7777
-+#nrf:
-+#    sbi:
-+#      - addr:
-+#          - 127.0.0.10
-+#          - ::1
-+#        port: 7777
-
- #
- # upf:
+ #    nrf:
+ #      - uri: http://127.0.0.10:7777
+     scp:
 ```
 
 If you set as above and run SMF, you do not need to run NRF. Seven daemons operate in 4G only state.
@@ -503,33 +483,33 @@ $ sudo iptables -t nat -A POSTROUTING -s 10.46.0.0/16 ! -o ogstun -j MASQUERADE
 Now, you need to modify the configuration file of Open5GS to adjust the UE IP Pool. UE IP Pool can be allocated by SMF or UPF, but in this tutorial, we will modify both configuration files.
 
 ```diff
-$ diff -u smf.yaml smf.yaml.new
---- smf.yaml    2020-09-17 09:31:16.547882093 -0400
-+++ smf.yaml.new    2020-09-17 09:32:18.267726844 -0400
-@@ -458,7 +458,7 @@ smf:
-         addr: 127.0.0.4
-         port: 9090
-     subnet:
--      - addr: 10.45.0.1/16
-+      - addr: 10.46.0.1/16
-       - addr: 2001:db8:cafe::1/48
+$ diff --git a/configs/open5gs/smf.yaml.in b/configs/open5gs/smf.yaml.in
+index 82e3b3cad..421b69229 100644
+--- a/configs/open5gs/smf.yaml.in
++++ b/configs/open5gs/smf.yaml.in
+@@ -28,6 +28,7 @@ smf:
+     session:
+       - subnet: 10.45.0.1/16
+       - subnet: 2001:db8:cafe::1/48
++      - subnet: 10.46.0.1/16
      dns:
        - 8.8.8.8
+       - 8.8.4.4
 ```
 
 ```diff
-$ diff -u upf.yaml upf.yaml.new
---- upf.yaml    2020-09-17 09:31:16.547882093 -0400
-+++ upf.yaml.new    2020-09-17 09:32:25.199619989 -0400
-@@ -170,7 +170,7 @@ upf:
-     gtpu:
-       - addr: 127.0.0.7
-     subnet:
--      - addr: 10.45.0.1/16
-+      - addr: 10.46.0.1/16
-       - addr: 2001:db8:cafe::1/48
-
- #
+diff --git a/configs/open5gs/upf.yaml.in b/configs/open5gs/upf.yaml.in
+index 9e9958fde..2964a5391 100644
+--- a/configs/open5gs/upf.yaml.in
++++ b/configs/open5gs/upf.yaml.in
+@@ -16,6 +16,7 @@ upf:
+     session:
+       - subnet: 10.45.0.1/16
+       - subnet: 2001:db8:cafe::1/48
++      - subnet: 10.46.0.1/16
+     metrics:
+       - address: 127.0.0.7
+         port: 9090
 ```
 
 Restart SMF/UPF
@@ -846,7 +826,7 @@ By default, MME selects the SMF as the first SMF node. To use a different DNN/AP
 See the following example.
 
 ```
-### For reference, see `smf.yaml`
+### For reference, see `mme.yaml`
 #
 # smf:
 #
@@ -861,29 +841,22 @@ See the following example.
 #  o Two SMF are defined. 127.0.0.4:2123 is used.
 #    [fe80::3%lo]:2123 is ignored.
 #    gtpc:
-#      - addr: 127.0.0.4
-#      - addr: fe80::3%lo
-#
-#  o One SMF is defined. if prefer_ipv4 is not true,
-#    [fe80::3%lo] is selected.
-#    gtpc:
-#      - addr:
-#        - 127.0.0.4
-#        - fe80::3%lo
+#      - address: 127.0.0.4
+#      - address: fe80::3%lo
 #
 #  o Two SMF are defined with a different DNN/APN.
 #    - Note that if SMF IP for UE is configured in HSS,
 #      the following configurion for this UE is ignored.
 #    gtpc:
-#      - addr: 127.0.0.4
+#      - address: 127.0.0.4
 #        dnn: internet
-#      - addr: 127.0.0.5
+#      - address: 127.0.0.5
 #        dnn: volte
 #
 #  o If DNN/APN is omitted, the default DNN/APN uses the first SMF node.
 #    gtpc:
-#      - addr: 127.0.0.4
-#      - addr: 127.0.0.5
+#      - address: 127.0.0.4
+#      - address: 127.0.0.5
 #        dnn: volte
 ```
 
@@ -896,16 +869,16 @@ The IP address of the UE can also use a different UE pool depending on the DNN/A
 #  o IPv4 Pool
 #    $ sudo ip addr add 10.45.0.1/16 dev ogstun
 #
-#    subnet:
-#      addr: 10.45.0.1/16
+#    session:
+#      subnet: 10.45.0.1/16
 #
 #  o IPv4/IPv6 Pool
 #    $ sudo ip addr add 10.45.0.1/16 dev ogstun
 #    $ sudo ip addr add 2001:db8:cafe::1/48 dev ogstun
 #
-#    subnet:
-#      - addr: 10.45.0.1/16
-#      - addr: 2001:db8:cafe::1/48
+#    session:
+#      - subnet: 10.45.0.1/16
+#      - subnet: 2001:db8:cafe::1/48
 #
 #
 #  o Specific DNN/APN(e.g 'volte') uses 10.46.0.1/16, 2001:db8:babe::1/48
@@ -915,37 +888,37 @@ The IP address of the UE can also use a different UE pool depending on the DNN/A
 #    $ sudo ip addr add 2001:db8:cafe::1/48 dev ogstun
 #    $ sudo ip addr add 2001:db8:babe::1/48 dev ogstun
 #
-#    subnet:
-#      - addr: 10.45.0.1/16
-#      - addr: 2001:db8:cafe::1/48
-#      - addr: 10.46.0.1/16
+#    session:
+#      - subnet: 10.45.0.1/16
+#      - subnet: 2001:db8:cafe::1/48
+#      - subnet: 10.46.0.1/16
 #        dnn: volte
-#      - addr: 2001:db8:babe::1/48
+#      - subnet: 2001:db8:babe::1/48
 #        dnn: volte
 #
 #  o Pool Range Sample
-#    subnet:
-#      - addr: 10.45.0.1/24
+#    session:
+#      - subnet: 10.45.0.1/24
 #        range: 10.45.0.100-10.45.0.200
 #
-#    subnet:
-#      - addr: 10.45.0.1/24
+#    session:
+#      - subnet: 10.45.0.1/24
 #        range:
 #          - 10.45.0.5-10.45.0.50
 #          - 10.45.0.100-
 #
-#    subnet:
-#      - addr: 10.45.0.1/24
+#    session:
+#      - subnet: 10.45.0.1/24
 #        range:
 #          - -10.45.0.200
 #          - 10.45.0.210-10.45.0.220
 #
-#    subnet:
-#      - addr: 10.45.0.1/16
+#    session:
+#      - subnet: 10.45.0.1/16
 #        range:
 #          - 10.45.0.100-10.45.0.200
 #          - 10.45.1.100-10.45.1.200
-#      - addr: 2001:db8:cafe::1/48
+#      - subnet: 2001:db8:cafe::1/48
 #        range:
 #          - 2001:db8:cafe:a0::0-2001:db8:cafe:b0::0
 #          - 2001:db8:cafe:c0::0-2001:db8:cafe:d0::0

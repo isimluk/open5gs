@@ -172,11 +172,11 @@ static int smf_context_validation(void)
         return OGS_ERROR;
     }
     if (ogs_list_first(&ogs_gtp_self()->gtpu_list) == NULL) {
-        ogs_error("No smf.gtpu in '%s'", ogs_app()->file);
+        ogs_error("No smf.gtpu.address in '%s'", ogs_app()->file);
         return OGS_ERROR;
     }
     if (ogs_list_first(&ogs_pfcp_self()->subnet_list) == NULL) {
-        ogs_error("No smf.subnet: in '%s'", ogs_app()->file);
+        ogs_error("No smf.session.subnet: in '%s'", ogs_app()->file);
         return OGS_ERROR;
     }
 
@@ -422,7 +422,8 @@ int smf_context_parse_config(void)
                                         if (!strcmp(conn_key, "identity")) {
                                             identity =
                                                 ogs_yaml_iter_value(&conn_iter);
-                                        } else if (!strcmp(conn_key, "addr")) {
+                                        } else if (!strcmp(conn_key,
+                                                    "address")) {
                                             addr =
                                                 ogs_yaml_iter_value(&conn_iter);
                                         } else if (!strcmp(conn_key, "port")) {
@@ -936,9 +937,17 @@ int smf_context_parse_config(void)
                     }
                 } else if (!strcmp(smf_key, "pfcp")) {
                     /* handle config in pfcp library */
-                } else if (!strcmp(smf_key, "subnet")) {
+                } else if (!strcmp(smf_key, "upf")) {
                     /* handle config in pfcp library */
+                } else if (!strcmp(smf_key, "session")) {
+                    /* handle config in pfcp library */
+                } else if (!strcmp(smf_key, "defconfig")) {
+                    /* handle config in sbi library */
                 } else if (!strcmp(smf_key, "sbi")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(smf_key, "nrf")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(smf_key, "scp")) {
                     /* handle config in sbi library */
                 } else if (!strcmp(smf_key, "service_name")) {
                     /* handle config in sbi library */

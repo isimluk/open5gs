@@ -53,7 +53,6 @@ $ sudo ifconfig lo0 alias 127.0.0.2 netmask 255.255.255.255
 $ sudo ifconfig lo0 alias 127.0.0.3 netmask 255.255.255.255
 $ sudo ifconfig lo0 alias 127.0.0.4 netmask 255.255.255.255
 $ sudo ifconfig lo0 alias 127.0.0.5 netmask 255.255.255.255
-$ sudo ifconfig lo0 alias 127.0.0.5 netmask 255.255.255.255
 $ sudo ifconfig lo0 alias 127.0.0.6 netmask 255.255.255.255
 $ sudo ifconfig lo0 alias 127.0.0.7 netmask 255.255.255.255
 $ sudo ifconfig lo0 alias 127.0.0.8 netmask 255.255.255.255
@@ -70,6 +69,35 @@ $ sudo ifconfig lo0 alias 127.0.0.18 netmask 255.255.255.255
 $ sudo ifconfig lo0 alias 127.0.0.19 netmask 255.255.255.255
 $ sudo ifconfig lo0 alias 127.0.0.20 netmask 255.255.255.255
 $ sudo ifconfig lo0 alias 127.0.1.10 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.1.11 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.1.12 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.1.13 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.1.14 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.1.15 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.2.10 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.2.11 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.2.12 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.2.14 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.2.15 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.3.2 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.3.3 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.3.4 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.3.5 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.3.6 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.3.7 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.3.8 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.3.9 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.3.10 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.3.11 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.3.12 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.3.13 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.3.14 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.3.15 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.3.16 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.3.17 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.3.18 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.3.19 netmask 255.255.255.255
+$ sudo ifconfig lo0 alias 127.0.3.20 netmask 255.255.255.255
 ```
 
 Enable IP forwarding & Masquerading

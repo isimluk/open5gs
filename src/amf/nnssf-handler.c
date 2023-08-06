@@ -127,7 +127,6 @@ int amf_nnssf_nsselection_handle_get(
             client = ogs_sbi_client_add(scheme, fqdn, fqdn_port, addr, addr6);
             ogs_assert(client);
         }
-
         OGS_SBI_SETUP_CLIENT(&sess->nssf.nrf, client);
 
         ogs_free(fqdn);

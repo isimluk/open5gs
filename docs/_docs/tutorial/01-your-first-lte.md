@@ -235,39 +235,37 @@ Modify [install/etc/open5gs/mme.yaml](https://github.com/{{ site.github_username
 
 ```diff
 $ diff --git a/configs/open5gs/mme.yaml.in b/configs/open5gs/mme.yaml.in
-index 722648dd6..c998a1e47 100644
+index 83a5e34ee..2405d2db2 100644
 --- a/configs/open5gs/mme.yaml.in
 +++ b/configs/open5gs/mme.yaml.in
-@@ -251,7 +251,7 @@ logger:
+@@ -9,7 +9,7 @@ max:
  mme:
      freeDiameter: @sysconfdir@/freeDiameter/mme.conf
      s1ap:
--      - addr: 127.0.0.2
-+      - addr: 127.0.1.2
+-      - address: 127.0.0.2
++      - address: 10.10.0.2
      gtpc:
-       - addr: 127.0.0.2
-     metrics:
-@@ -259,15 +259,15 @@ mme:
+       - address: 127.0.0.2
+     sgwc:
+@@ -21,14 +21,14 @@ mme:
          port: 9090
      gummei:
        plmn_id:
 -        mcc: 999
 -        mnc: 70
-+        mcc: 310
-+        mnc: 789
++        mcc: 001
++        mnc: 01
        mme_gid: 2
        mme_code: 1
      tai:
        plmn_id:
 -        mcc: 999
 -        mnc: 70
--      tac: 1
-+        mcc: 310
-+        mnc: 789
-+      tac: 5
++        mcc: 001
++        mnc: 01
+       tac: 1
      security:
          integrity_order : [ EIA2, EIA1, EIA0 ]
-         ciphering_order : [ EEA0, EEA1, EEA2 ]
 ```
 
 After changing conf files, please restart Open5GS daemons.

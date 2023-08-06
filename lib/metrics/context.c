@@ -144,8 +144,7 @@ int ogs_metrics_context_parse_config(const char *local)
                                         family, AF_UNSPEC, AF_INET, AF_INET6);
                                     family = AF_UNSPEC;
                                 }
-                            } else if (!strcmp(metrics_key, "addr") ||
-                                    !strcmp(metrics_key, "name")) {
+                            } else if (!strcmp(metrics_key, "address")) {
                                 ogs_yaml_iter_t hostname_iter;
                                 ogs_yaml_iter_recurse(&metrics_iter,
                                         &hostname_iter);
@@ -230,25 +229,6 @@ int ogs_metrics_context_parse_config(const char *local)
 
                     } while (ogs_yaml_iter_type(&metrics_array) ==
                             YAML_SEQUENCE_NODE);
-
-                    if (ogs_list_first(&self.server_list) == 0) {
-                        ogs_list_init(&list);
-                        ogs_list_init(&list6);
-
-                        rv = ogs_socknode_probe(
-                            ogs_app()->parameter.no_ipv4 ? NULL : &list,
-                            ogs_app()->parameter.no_ipv6 ? NULL : &list6,
-                            NULL, self.metrics_port, NULL);
-                        ogs_assert(rv == OGS_OK);
-
-                        node = ogs_list_first(&list);
-                        if (node) ogs_metrics_server_add(node->addr, NULL);
-                        node6 = ogs_list_first(&list6);
-                        if (node6) ogs_metrics_server_add(node6->addr, NULL);
-
-                        ogs_socknode_remove_all(&list);
-                        ogs_socknode_remove_all(&list6);
-                    }
                 }
             }
         }

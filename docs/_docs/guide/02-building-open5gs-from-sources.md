@@ -113,17 +113,20 @@ $ cd ../
 Modify [install/etc/open5gs/amf.yaml](https://github.com/{{ site.github_username }}/open5gs/blob/main/configs/open5gs/amf.yaml.in) to set the NGAP IP address, PLMN ID, TAC and NSSAI.
 
 ```diff
-$ diff -u /etc/open5gs/amf.yaml.old /etc/open5gs/amf.yaml
---- amf.yaml    2020-09-05 20:52:28.652234967 -0400
-+++ amf.yaml.new    2020-09-05 20:55:07.453114885 -0400
-@@ -293,26 +293,26 @@ amf:
-       - addr: 127.0.0.5
+$ diff --git a/configs/open5gs/amf.yaml.in b/configs/open5gs/amf.yaml.in
+index a70143f08..dee6ad508 100644
+--- a/configs/open5gs/amf.yaml.in
++++ b/configs/open5gs/amf.yaml.in
+@@ -8,7 +8,7 @@ max:
+
+ amf:
+     sbi:
+-      - address: 127.0.0.5
++      - address: 10.10.0.5
          port: 7777
-     ngap:
--      - addr: 127.0.0.5
-+      - addr: 10.10.0.5
-     metrics:
-         addr: 127.0.0.5
+ #    nrf:
+ #      - uri: http://127.0.0.10:7777
+@@ -21,20 +21,20 @@ amf:
          port: 9090
      guami:
        - plmn_id:
@@ -154,36 +157,40 @@ $ diff -u /etc/open5gs/amf.yaml.old /etc/open5gs/amf.yaml
 
 Modify [install/etc/open5gs/upf.yaml](https://github.com/{{ site.github_username }}/open5gs/blob/main/configs/open5gs/upf.yaml.in) to set the GTP-U and PFCP IP address.
 ```diff
-$ diff -u /etc/open5gs/upf.yaml.old /etc/open5gs/upf.yaml
---- upf.yaml    2020-09-05 20:52:28.652234967 -0400
-+++ upf.yaml.new    2020-09-05 20:52:55.279052142 -0400
-@@ -168,7 +168,7 @@ upf:
-     pfcp:
-       - addr: 127.0.0.7
+$ diff --git a/configs/open5gs/upf.yaml.in b/configs/open5gs/upf.yaml.in
+index 9e9958fde..76dd3d216 100644
+--- a/configs/open5gs/upf.yaml.in
++++ b/configs/open5gs/upf.yaml.in
+@@ -12,7 +12,7 @@ upf:
+ #    smf:     #  UPF PFCP Client try to associate SMF PFCP Server
+ #      - address: 127.0.0.4
      gtpu:
--      - addr: 127.0.0.7
-+      - addr: 10.11.0.7
-     subnet:
-       - addr: 10.45.0.1/16
-       - addr: 2001:db8:cafe::1/48
+-      - address: 127.0.0.7
++      - address: 10.11.0.7
+     session:
+       - subnet: 10.45.0.1/16
+       - subnet: 2001:db8:cafe::1/48
 ```
 ##### 4G EPC
 
 Modify [install/etc/open5gs/mme.yaml](https://github.com/{{ site.github_username }}/open5gs/blob/main/configs/open5gs/mme.yaml.in) to set the S1AP IP address, PLMN ID, and TAC.
 
 ```diff
-$ diff -u /etc/open5gs/mme.yaml.old /etc/open5gs/mme.yaml
---- mme.yaml    2020-09-05 20:52:28.648235143 -0400
-+++ mme.yaml.new    2020-09-05 20:56:05.434484208 -0400
-@@ -253,20 +253,20 @@ mme:
+$ diff --git a/configs/open5gs/mme.yaml.in b/configs/open5gs/mme.yaml.in
+index 83a5e34ee..2405d2db2 100644
+--- a/configs/open5gs/mme.yaml.in
++++ b/configs/open5gs/mme.yaml.in
+@@ -9,7 +9,7 @@ max:
+ mme:
+     freeDiameter: @sysconfdir@/freeDiameter/mme.conf
      s1ap:
--      - addr: 127.0.0.2
-+      - addr: 10.10.0.2
+-      - address: 127.0.0.2
++      - address: 10.10.0.2
      gtpc:
-       - addr: 127.0.0.2
-     metrics:
-       addr: 127.0.0.2
-       port: 9090
+       - address: 127.0.0.2
+     sgwc:
+@@ -21,14 +21,14 @@ mme:
+         port: 9090
      gummei:
        plmn_id:
 -        mcc: 999
@@ -206,18 +213,18 @@ $ diff -u /etc/open5gs/mme.yaml.old /etc/open5gs/mme.yaml
 Modify [install/etc/open5gs/sgwu.yaml](https://github.com/{{ site.github_username }}/open5gs/blob/main/configs/open5gs/sgwu.yaml.in) to set the GTP-U IP address.
 ```diff
 $ diff --git a/configs/open5gs/sgwu.yaml.in b/configs/open5gs/sgwu.yaml.in
-index 8ccf94378..25b6884a3 100644
+index 4b6fa519e..69da1adc4 100644
 --- a/configs/open5gs/sgwu.yaml.in
 +++ b/configs/open5gs/sgwu.yaml.in
-@@ -100,7 +100,7 @@ sgwu:
-     pfcp:
-       - addr: 127.0.0.6
+@@ -12,7 +12,7 @@ sgwu:
+ #    sgwc:    # SGW-U PFCP Client try to associate SGW-C PFCP Server
+ #      - address: 127.0.0.3
      gtpu:
--      - addr: 127.0.0.6
-+      - addr: 10.11.0.6
+-      - address: 127.0.0.6
++      - address: 10.11.0.6
 
- #
- # sgwc:
+ ################################################################################
+ # PFCP Server
 ```
 
 If you modify the config files while Open5GS daemons are running, please restart them

@@ -115,6 +115,17 @@ ogs_sbi_client_t *ogs_sbi_client_add(
 
     client->scheme = scheme;
 
+    client->insecure_skip_verify =
+        ogs_sbi_self()->tls.client.insecure_skip_verify;
+    if (ogs_sbi_self()->tls.client.cacert)
+        client->cacert = ogs_strdup(ogs_sbi_self()->tls.client.cacert);
+
+    if (ogs_sbi_self()->tls.client.private_key)
+        client->private_key =
+            ogs_strdup(ogs_sbi_self()->tls.client.private_key);
+    if (ogs_sbi_self()->tls.client.cert)
+        client->cert = ogs_strdup(ogs_sbi_self()->tls.client.cert);
+
     ogs_debug("ogs_sbi_client_add[%s]", OpenAPI_uri_scheme_ToString(scheme));
     OGS_OBJECT_REF(client);
 
@@ -184,6 +195,13 @@ void ogs_sbi_client_remove(ogs_sbi_client_t *client)
 
     ogs_assert(client->multi);
     curl_multi_cleanup(client->multi);
+
+    if (client->cacert)
+        ogs_free(client->cacert);
+    if (client->private_key)
+        ogs_free(client->private_key);
+    if (client->cert)
+        ogs_free(client->cert);
 
     if (client->fqdn)
         ogs_free(client->fqdn);
@@ -422,22 +440,18 @@ static connection_t *connection_add(
 
     curl_easy_setopt(conn->easy, CURLOPT_BUFFERSIZE, OGS_MAX_SDU_LEN);
 
-    if (ogs_app()->sbi.client.no_tls == false) {
-        ogs_assert(ogs_app()->sbi.client.key);
-        ogs_assert(ogs_app()->sbi.client.cert);
-        curl_easy_setopt(conn->easy, CURLOPT_SSLKEY,
-                ogs_app()->sbi.client.key);
-        curl_easy_setopt(conn->easy, CURLOPT_SSLCERT,
-                ogs_app()->sbi.client.cert);
-
-        if (ogs_app()->sbi.client.no_verify == false) {
-            if (ogs_app()->sbi.client.cacert) {
-                curl_easy_setopt(conn->easy, CURLOPT_CAINFO,
-                        ogs_app()->sbi.client.cacert);
-            }
-        } else {
+    if (client->scheme == OpenAPI_uri_scheme_https) {
+        if (client->insecure_skip_verify) {
             curl_easy_setopt(conn->easy, CURLOPT_SSL_VERIFYPEER, 0);
             curl_easy_setopt(conn->easy, CURLOPT_SSL_VERIFYHOST, 0);
+        } else {
+            if (client->cacert)
+                curl_easy_setopt(conn->easy, CURLOPT_CAINFO, client->cacert);
+        }
+
+        if (client->private_key && client->cert) {
+            curl_easy_setopt(conn->easy, CURLOPT_SSLKEY, client->private_key);
+            curl_easy_setopt(conn->easy, CURLOPT_SSLCERT, client->cert);
         }
     }
 

@@ -30,7 +30,6 @@ static void copy_request(
 int sepp_sbi_open(void)
 {
     ogs_sbi_nf_instance_t *nf_instance = NULL;
-    sepp_node_t *sepp_node = NULL;
 
     /* Initialize SELF NF instance */
     nf_instance = ogs_sbi_self()->nf_instance;
@@ -44,10 +43,6 @@ int sepp_sbi_open(void)
     nf_instance = ogs_sbi_self()->nrf_instance;
     if (nf_instance)
         ogs_sbi_nf_fsm_init(nf_instance);
-
-    /* Initialize SEPP Peer List */
-    ogs_list_for_each(&sepp_self()->peer_list, sepp_node)
-        sepp_handshake_fsm_init(sepp_node, true);
 
     if (ogs_sbi_server_start_all(request_handler) != OGS_OK)
         return OGS_ERROR;

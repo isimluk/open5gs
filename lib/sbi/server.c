@@ -53,15 +53,30 @@ void ogs_sbi_server_final(void)
 }
 
 ogs_sbi_server_t *ogs_sbi_server_add(
-        ogs_sockaddr_t *addr, ogs_sockopt_t *option)
+        OpenAPI_uri_scheme_e scheme, ogs_sockaddr_t *addr,
+        ogs_sockopt_t *option)
 {
     ogs_sbi_server_t *server = NULL;
 
     ogs_assert(addr);
+    ogs_assert(scheme);
 
     ogs_pool_alloc(&server_pool, &server);
     ogs_assert(server);
     memset(server, 0, sizeof(ogs_sbi_server_t));
+
+    server->scheme = scheme;
+
+    if (ogs_sbi_self()->tls.server.private_key)
+        server->private_key =
+            ogs_strdup(ogs_sbi_self()->tls.server.private_key);
+    if (ogs_sbi_self()->tls.server.cert)
+        server->cert = ogs_strdup(ogs_sbi_self()->tls.server.cert);
+
+    server->verify_client = ogs_sbi_self()->tls.server.verify_client;
+    if (ogs_sbi_self()->tls.server.verify_client_cacert)
+        server->verify_client_cacert =
+            ogs_strdup(ogs_sbi_self()->tls.server.verify_client_cacert);
 
     ogs_assert(OGS_OK == ogs_copyaddrinfo(&server->node.addr, addr));
     if (option)
@@ -84,6 +99,13 @@ void ogs_sbi_server_remove(ogs_sbi_server_t *server)
         ogs_free(server->node.option);
     if (server->advertise)
         ogs_freeaddrinfo(server->advertise);
+
+    if (server->verify_client_cacert)
+        ogs_free(server->verify_client_cacert);
+    if (server->private_key)
+        ogs_free(server->private_key);
+    if (server->cert)
+        ogs_free(server->cert);
 
     ogs_pool_free(&server_pool, server);
 }

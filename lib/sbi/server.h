@@ -37,6 +37,11 @@ typedef struct ogs_sbi_server_s {
     ogs_socknode_t  node;
     ogs_sockaddr_t  *advertise;
 
+    OpenAPI_uri_scheme_e scheme;
+    char *private_key, *cert;
+    bool verify_client;
+    char *verify_client_cacert;
+
     SSL_CTX *ssl_ctx;
 
     int (*cb)(ogs_sbi_request_t *request, void *data);
@@ -65,7 +70,8 @@ void ogs_sbi_server_init(int num_of_session_pool, int num_of_stream_pool);
 void ogs_sbi_server_final(void);
 
 ogs_sbi_server_t *ogs_sbi_server_add(
-        ogs_sockaddr_t *addr, ogs_sockopt_t *option);
+        OpenAPI_uri_scheme_e scheme, ogs_sockaddr_t *addr,
+        ogs_sockopt_t *option);
 void ogs_sbi_server_remove(ogs_sbi_server_t *server);
 void ogs_sbi_server_remove_all(void);
 

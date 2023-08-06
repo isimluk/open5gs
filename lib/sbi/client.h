@@ -65,6 +65,9 @@ typedef struct ogs_sbi_client_s {
     ogs_lnode_t lnode;
 
     OpenAPI_uri_scheme_e scheme;
+    bool insecure_skip_verify;
+    char *cacert, *private_key, *cert;
+
     char *fqdn;
     uint16_t fqdn_port;
     ogs_sockaddr_t  *addr;

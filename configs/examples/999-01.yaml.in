@@ -9,24 +9,24 @@ test:
           mnc: 70
 
 parameter:
-#    no_nrf: true
+    no_nrf: true
     no_scp: true
     no_sepp: true
-#    no_amf: true
-#    no_smf: true
-#    no_upf: true
-#    no_ausf: true
-#    no_udm: true
-#    no_pcf: true
-#    no_nssf: true
-#    no_bsf: true
-#    no_udr: true
-#    no_mme: true
-#    no_sgwc: true
-#    no_sgwu: true
-#    no_pcrf: true
-#    no_hss: true
-#    use_mongodb_change_stream: true
+    no_amf: true
+    no_smf: true
+    no_upf: true
+    no_ausf: true
+    no_udm: true
+    no_pcf: true
+    no_nssf: true
+    no_bsf: true
+    no_udr: true
+    no_mme: true
+    no_sgwc: true
+    no_sgwu: true
+    no_pcrf: true
+    no_hss: true
+    use_mongodb_change_stream: true
 
 mme:
     freeDiameter:
@@ -42,7 +42,7 @@ mme:
         - module: @build_subprojects_freeDiameter_extensions_dir@/dict_nasreq.fdx
         - module: @build_subprojects_freeDiameter_extensions_dir@/dict_nas_mipv6.fdx
         - module: @build_subprojects_freeDiameter_extensions_dir@/dict_dcca.fdx
-        - module: @build_subprojects_freeDiameter_extensions_dir@/dict_dcca_3gpp/dict_dcca_3gpp/dict_dcca_3gpp.fdx
+        - module: @build_subprojects_freeDiameter_extensions_dir@/dict_dcca_3gpp/dict_dcca_3gpp.fdx
       connect:
         - identity: hss.localdomain
           address: 127.0.0.8
@@ -55,6 +55,9 @@ mme:
       - address: 127.0.0.3
     smf:
       - address: 127.0.0.4
+    metrics:
+      address: 127.0.0.2
+      port: 9090
     gummei:
       plmn_id:
         mcc: 999
@@ -85,8 +88,8 @@ smf:
     sbi:
       - address: 127.0.0.4
         port: 7777
-    nrf:
-      - uri: http://127.0.0.10:7777
+    scp:
+      - uri: http://127.0.1.10:7777
     pfcp:
       - address: 127.0.0.4
     upf:
@@ -95,6 +98,9 @@ smf:
       - address: 127.0.0.4
     gtpu:
       - address: 127.0.0.4
+    metrics:
+      address: 127.0.0.4
+      port: 9090
     session:
       - subnet: 10.45.0.1/16
       - subnet: 2001:db8:cafe::1/48
@@ -121,21 +127,25 @@ smf:
       connect:
         - identity: pcrf.localdomain
           address: 127.0.0.9
+
 amf:
     sbi:
       - address: 127.0.0.5
         port: 7777
-    nrf:
-      - uri: http://127.0.0.10:7777
+    scp:
+      - uri: http://127.0.1.10:7777
     ngap:
       - address: 127.0.0.5
+    metrics:
+      address: 127.0.0.5
+      port: 9090
     guami:
       - plmn_id:
           mcc: 999
           mnc: 70
         amf_id:
-          region: 202
-          set: 1016
+          region: 2
+          set: 1
     tai:
       - plmn_id:
           mcc: 999
@@ -147,12 +157,8 @@ amf:
           mnc: 70
         s_nssai:
           - sst: 1
-          - sst: 1
-            sd: 000080
-          - sst: 1
-            sd: 009000
     security:
-        integrity_order : [ NIA2, NIA1 ]
+        integrity_order : [ NIA2, NIA1, NIA0 ]
         ciphering_order : [ NEA0, NEA1, NEA2 ]
     network_name:
         full: Open5GS
@@ -218,62 +224,67 @@ nrf:
       - address: 127.0.0.10
         port: 7777
 
-ausf:
+scp:
     sbi:
-      - address: 127.0.0.11
+      - address: 127.0.1.10
         port: 7777
     nrf:
       - uri: http://127.0.0.10:7777
 
+ausf:
+    sbi:
+      - address: 127.0.0.11
+        port: 7777
+    scp:
+      - uri: http://127.0.1.10:7777
+
 udm:
+    hnet:
+      - id: 1
+        scheme: 1
+        key: @build_configs_dir@/open5gs/hnet/curve25519-1.key
+      - id: 2
+        scheme: 2
+        key: @build_configs_dir@/open5gs/hnet/secp256r1-2.key
     sbi:
       - address: 127.0.0.12
         port: 7777
-    nrf:
-      - uri: http://127.0.0.10:7777
+    scp:
+      - uri: http://127.0.1.10:7777
 
 pcf:
     sbi:
       - address: 127.0.0.13
         port: 7777
-    nrf:
-      - uri: http://127.0.0.10:7777
     metrics:
       - address: 127.0.0.13
         port: 9090
+    scp:
+      - uri: http://127.0.1.10:7777
 
 nssf:
     sbi:
       - address: 127.0.0.14
         port: 7777
-    nrf:
-      - uri: http://127.0.0.10:7777
+    scp:
+      - uri: http://127.0.1.10:7777
     nsi:
       - uri: http://127.0.0.10:7777
         s_nssai:
           sst: 1
-      - uri: http://127.0.0.19:7777
-        s_nssai:
-          sst: 1
-          sd: 000080
-      - uri: http://127.0.0.10:7777
-        s_nssai:
-          sst: 1
-          sd: 009000
-
 bsf:
     sbi:
       - address: 127.0.0.15
         port: 7777
-    nrf:
-      - uri: http://127.0.0.10:7777
+    scp:
+      - uri: http://127.0.1.10:7777
 
 udr:
     sbi:
       - address: 127.0.0.20
         port: 7777
-    nrf:
-      - uri: http://127.0.0.10:7777
+    scp:
+      - uri: http://127.0.1.10:7777
 
 time:
   t3512:

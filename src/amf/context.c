@@ -130,7 +130,7 @@ static int amf_context_validation(void)
 
     if (ogs_list_first(&self.ngap_list) == NULL &&
         ogs_list_first(&self.ngap_list6) == NULL) {
-        ogs_error("No amf.ngap in '%s'", ogs_app()->file);
+        ogs_error("No amf.ngap.address in '%s'", ogs_app()->file);
         return OGS_ERROR;
     }
 
@@ -259,8 +259,7 @@ int amf_context_parse_config(void)
                                         family, AF_UNSPEC, AF_INET, AF_INET6);
                                     family = AF_UNSPEC;
                                 }
-                            } else if (!strcmp(ngap_key, "addr") ||
-                                    !strcmp(ngap_key, "name")) {
+                            } else if (!strcmp(ngap_key, "address")) {
                                 ogs_yaml_iter_t hostname_iter;
                                 ogs_yaml_iter_recurse(
                                         &ngap_iter, &hostname_iter);
@@ -327,16 +326,6 @@ int amf_context_parse_config(void)
                     } while (ogs_yaml_iter_type(&ngap_array) ==
                             YAML_SEQUENCE_NODE);
 
-                    if (ogs_list_first(&self.ngap_list) == NULL &&
-                        ogs_list_first(&self.ngap_list6) == NULL) {
-                        rv = ogs_socknode_probe(
-                                ogs_app()->parameter.no_ipv4 ?
-                                    NULL : &self.ngap_list,
-                                ogs_app()->parameter.no_ipv6 ?
-                                    NULL : &self.ngap_list6,
-                                NULL, self.ngap_port, NULL);
-                        ogs_assert(rv == OGS_OK);
-                    }
                 } else if (!strcmp(amf_key, "guami")) {
                     ogs_yaml_iter_t guami_array, guami_iter;
                     ogs_yaml_iter_recurse(&amf_iter, &guami_array);
@@ -975,7 +964,13 @@ int amf_context_parse_config(void)
                     }
                 } else if (!strcmp(amf_key, "amf_name")) {
                     self.amf_name = ogs_yaml_iter_value(&amf_iter);
+                } else if (!strcmp(amf_key, "defconfig")) {
+                    /* handle config in sbi library */
                 } else if (!strcmp(amf_key, "sbi")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(amf_key, "nrf")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(amf_key, "scp")) {
                     /* handle config in sbi library */
                 } else if (!strcmp(amf_key, "service_name")) {
                     /* handle config in sbi library */

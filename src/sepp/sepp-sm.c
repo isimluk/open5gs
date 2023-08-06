@@ -210,12 +210,47 @@ void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e)
 
             SWITCH(message.h.resource.component[0])
             CASE(OGS_SBI_RESOURCE_NAME_NF_INSTANCES)
+                ogs_fsm_handler_t old_state;
+
                 nf_instance = e->h.sbi.data;
                 ogs_assert(nf_instance);
-                ogs_assert(OGS_FSM_STATE(&nf_instance->sm));
+
+                old_state = OGS_FSM_STATE(&nf_instance->sm);
+                ogs_assert(old_state);
 
                 e->h.sbi.message = &message;
                 ogs_fsm_dispatch(&nf_instance->sm, e);
+
+            /*
+             * The SEPP on the H-PLMN should send a n32c-handshake message
+             * with the Sender PLMN-ID. Otherwise, the UE in the V-PLMN cannot
+             * find the SEPP in the H-PLMN during the REGISTRATION.
+             *
+             * Since SEPP's PLMN-ID can be received when registering with NRF,
+             * n32c-handshake messages could be started after that.
+             *
+             * To confirm that the PLMN-ID has been received from the NRF,
+             * we check if the NF state has changed from
+             * ogs_sbi_nf_state_will_register to ogs_sbi_nf_state_registered.
+             */
+
+                if (old_state ==
+                        (ogs_fsm_handler_t)ogs_sbi_nf_state_will_register &&
+                    OGS_FSM_CHECK(&nf_instance->sm,
+                        ogs_sbi_nf_state_registered)) {
+
+                    /* Initialize SEPP Peer List */
+                    ogs_list_for_each(&sepp_self()->peer_list, sepp_node) {
+
+                        /*
+                         * Since FSM initialization only needs to be done once
+                         * at the beginning, it only performs initialization
+                         * when the state variable(OGS_FSM_STATE()) is NULL.
+                         */
+                        if (!OGS_FSM_STATE(&sepp_node->sm))
+                            sepp_handshake_fsm_init(sepp_node, true);
+                    }
+                }
                 break;
 
             CASE(OGS_SBI_RESOURCE_NAME_SUBSCRIPTIONS)

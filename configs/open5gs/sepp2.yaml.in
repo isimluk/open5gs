@@ -1,31 +1,53 @@
-db_uri: mongodb://localhost/open5gs
 logger:
-    file: @localstatedir@/log/open5gs/pcf.log
+    file: @localstatedir@/log/open5gs/sepp2.log
 #    level: info   # fatal|error|warn|info(default)|debug|trace
 
 max:
     ue: 1024  # The number of UE can be increased depending on memory size.
 #    peer: 64
 
-pcf:
+sepp:
     sbi:
-      - address: 127.0.0.13
+      - scheme: https
+        address: sepp2.localdomain
         port: 7777
+        private_key: @sysconfdir@/open5gs/tls/sepp2.key
+        cert: @sysconfdir@/open5gs/tls/sepp2.crt
 #    nrf:
 #      - uri: http://127.0.0.10:7777
     scp:
       - uri: http://127.0.1.10:7777
-    metrics:
-      - address: 127.0.0.13
-        port: 9090
+    sepp:
+        uri: https://sepp1.localdomain:7777
+        cacert: @sysconfdir@/open5gs/tls/ca.crt
 
+################################################################################
+# SEPP Info
+################################################################################
+#  o SEPP port number(s) for HTTP and/or HTTPS
+#   - This attribute shall be present if the SEPP uses non-default HTTP and/or
+#     HTTPS ports. When present, it shall contain the HTTP and/or HTTPS ports.
+#     (Minimum: 0 Maximum: 65535)
+#    info:
+#      port:
+#        http: 7777
+#        https: 8888
+#
 ################################################################################
 # SBI Server
 ################################################################################
+#  o n32-c should use HTTPS scheme with FQDN(hostname)
+#    sbi:
+#      - scheme: https
+#        address: sepp2.localdomain
+#        port: 7777
+#        private_key: @sysconfdir@/open5gs/tls/sepp2.key
+#        cert: @sysconfdir@/open5gs/tls/sepp2.crt
+#
 #  o Override SBI address to be advertised to NRF
 #    sbi:
 #      - dev: eth0
-#        advertise: open5gs-pcf.svc.local
+#        advertise: open5gs-sepp2.svc.local
 #
 #    sbi:
 #      - address: localhost
@@ -36,6 +58,11 @@ pcf:
 ################################################################################
 # SBI Client
 ################################################################################
+#  o n32-c inteface should use HTTPS scheme with FQDN
+#    sepp:
+#        uri: https://sepp2.localdomain:7777
+#        cacert: @sysconfdir@/open5gs/tls/ca.crt
+#
 #  o Direct communication with NRF interaction
 #    nrf:
 #      - uri: http://127.0.0.10:7777
@@ -60,8 +87,8 @@ pcf:
 #      tls:
 #        server:
 #          scheme: https
-#          private_key: @sysconfdir@/open5gs/tls/pcf.key
-#          cert: @sysconfdir@/open5gs/tls/pcf.crt
+#          private_key: @sysconfdir@/open5gs/tls/sepp2.key
+#          cert: @sysconfdir@/open5gs/tls/sepp2.crt
 #        client:
 #          scheme: https
 #          cacert: @sysconfdir@/open5gs/tls/ca.crt
@@ -69,33 +96,39 @@ pcf:
 #  o Override default configuration on individual servers and clients
 #    sbi:
 #      - scheme: https
-#        address: pcf.localdomain
+#        address: sepp2.localdomain
 #        port: 7777
-#        private_key: @sysconfdir@/open5gs/tls/pcf.key
-#        cert: @sysconfdir@/open5gs/tls/pcf.crt
+#        private_key: @sysconfdir@/open5gs/tls/sepp2.key
+#        cert: @sysconfdir@/open5gs/tls/sepp2.crt
 #    nrf:
 #      - uri: https://nrf.localdomain:7777
 #        cacert: @sysconfdir@/open5gs/tls/ca.crt
 #    scp:
 #      - uri: https://scp.localdomain:7777
+#        cacert: @sysconfdir@/open5gs/tls/ca.crt
+#    sepp:
+#        uri: https://sepp1.localdomain:7777
 #        cacert: @sysconfdir@/open5gs/tls/ca.crt
 #
 #  o Add client TLS verification
 #    sbi:
 #      - scheme: https
-#        address: pcf.localdomain
+#        address: sepp2.localdomain
 #        port: 7777
-#        private_key: @sysconfdir@/open5gs/tls/pcf.key
-#        cert: @sysconfdir@/open5gs/tls/pcf.crt
+#        private_key: @sysconfdir@/open5gs/tls/sepp2.key
+#        cert: @sysconfdir@/open5gs/tls/sepp2.crt
 #        verify_client: true
 #        verify_client_cacert: @sysconfdir@/open5gs/tls/ca.crt
 #    nrf:
 #      - uri: https://nrf.localdomain:7777
 #        cacert: @sysconfdir@/open5gs/tls/ca.crt
-#        client_private_key: @sysconfdir@/open5gs/tls/pcf.key
-#        client_cert: @sysconfdir@/open5gs/tls/pcf.crt
+#        client_private_key: @sysconfdir@/open5gs/tls/sepp2.key
+#        client_cert: @sysconfdir@/open5gs/tls/sepp2.crt
 #    scp:
 #      - uri: https://scp.localdomain:7777
 #        cacert: @sysconfdir@/open5gs/tls/ca.crt
-#        client_private_key: @sysconfdir@/open5gs/tls/pcf.key
-#        client_cert: @sysconfdir@/open5gs/tls/pcf.crt
+#        client_private_key: @sysconfdir@/open5gs/tls/sepp2.key
+#        client_cert: @sysconfdir@/open5gs/tls/sepp2.crt
+#    sepp:
+#        uri: https://sepp1.localdomain:7777
+#        cacert: @sysconfdir@/open5gs/tls/ca.crt

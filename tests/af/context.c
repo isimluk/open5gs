@@ -109,7 +109,13 @@ int af_context_parse_config(void)
             while (ogs_yaml_iter_next(&af_iter)) {
                 const char *af_key = ogs_yaml_iter_key(&af_iter);
                 ogs_assert(af_key);
-                if (!strcmp(af_key, "sbi")) {
+                if (!strcmp(af_key, "defconfig")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(af_key, "sbi")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(af_key, "nrf")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(af_key, "scp")) {
                     /* handle config in sbi library */
                 } else if (!strcmp(af_key, "service_name")) {
                     /* handle config in sbi library */
@@ -274,8 +280,8 @@ void af_sess_associate_pcf_client(af_sess_t *sess)
 
     ogs_assert(sess);
 
-    scheme = ogs_app()->sbi.client.no_tls == false ?
-                OpenAPI_uri_scheme_https : OpenAPI_uri_scheme_http;
+    scheme = ogs_sbi_self()->tls.client.scheme;
+    ogs_assert(scheme);
 
     if (!client) {
         /* At this point, CLIENT selection method is very simple. */

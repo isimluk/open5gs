@@ -182,16 +182,6 @@ typedef struct ogs_app_context_s {
     ogs_plmn_id_t serving_plmn_id[OGS_MAX_NUM_OF_PLMN];
     int num_of_serving_plmn_id;
 
-    struct {
-        struct {
-            bool no_tls;
-            bool no_verify;
-            const char *cacert;
-            const char *cert;
-            const char *key;
-        } server, client;
-    } sbi;
-
 } ogs_app_context_t;
 
 int ogs_app_context_init(void);

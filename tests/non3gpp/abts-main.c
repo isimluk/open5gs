@@ -160,8 +160,7 @@ int parse_config(void)
                                         family, AF_UNSPEC, AF_INET, AF_INET6);
                                     family = AF_UNSPEC;
                                 }
-                            } else if (!strcmp(gtpc_key, "addr") ||
-                                    !strcmp(gtpc_key, "name")) {
+                            } else if (!strcmp(gtpc_key, "address")) {
                                 ogs_yaml_iter_t hostname_iter;
                                 ogs_yaml_iter_recurse(&gtpc_iter,
                                         &hostname_iter);

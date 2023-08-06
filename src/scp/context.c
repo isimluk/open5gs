@@ -93,14 +93,14 @@ static int scp_context_prepare(void)
             advertise = server->node.addr;
         ogs_assert(advertise);
 
-        if (ogs_sbi_server_default_scheme() == OpenAPI_uri_scheme_https) {
+        if (server->scheme == OpenAPI_uri_scheme_https) {
             scp_info->https.presence = true;
             scp_info->https.port = OGS_PORT(advertise);
-        } else if (ogs_sbi_server_default_scheme() == OpenAPI_uri_scheme_http) {
+        } else if (server->scheme == OpenAPI_uri_scheme_http) {
             scp_info->http.presence = true;
             scp_info->http.port = OGS_PORT(advertise);
         } else {
-            ogs_error("Unknown scheme[%d]", ogs_sbi_server_default_scheme());
+            ogs_error("Unknown scheme[%d]", server->scheme);
             ogs_assert_if_reached();
         }
     }
@@ -135,7 +135,13 @@ int scp_context_parse_config(void)
             while (ogs_yaml_iter_next(&scp_iter)) {
                 const char *scp_key = ogs_yaml_iter_key(&scp_iter);
                 ogs_assert(scp_key);
-                if (!strcmp(scp_key, "sbi")) {
+                if (!strcmp(scp_key, "defconfig")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(scp_key, "sbi")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(scp_key, "nrf")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(scp_key, "scp")) {
                     /* handle config in sbi library */
                 } else if (!strcmp(scp_key, "service_name")) {
                     /* handle config in sbi library */

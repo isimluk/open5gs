@@ -224,8 +224,7 @@ int test_context_parse_config(void)
                                         family, AF_UNSPEC, AF_INET, AF_INET6);
                                     family = AF_UNSPEC;
                                 }
-                            } else if (!strcmp(ngap_key, "addr") ||
-                                    !strcmp(ngap_key, "name")) {
+                            } else if (!strcmp(ngap_key, "address")) {
                                 ogs_yaml_iter_t hostname_iter;
                                 ogs_yaml_iter_recurse(
                                         &ngap_iter, &hostname_iter);
@@ -292,16 +291,6 @@ int test_context_parse_config(void)
                     } while (ogs_yaml_iter_type(&ngap_array) ==
                             YAML_SEQUENCE_NODE);
 
-                    if (ogs_list_first(&self.ngap_list) == NULL &&
-                        ogs_list_first(&self.ngap_list6) == NULL) {
-                        rv = ogs_socknode_probe(
-                                ogs_app()->parameter.no_ipv4 ?
-                                    NULL : &self.ngap_list,
-                                ogs_app()->parameter.no_ipv6 ?
-                                    NULL : &self.ngap_list6,
-                                NULL, self.ngap_port, NULL);
-                        ogs_assert(rv == OGS_OK);
-                    }
                 } if (!strcmp(amf_key, "tai")) {
                     int num_of_list0 = 0;
                     int num_of_list1 = 0;
@@ -631,6 +620,10 @@ int test_context_parse_config(void)
                             YAML_SEQUENCE_NODE);
                 } else if (!strcmp(amf_key, "sbi")) {
                     /* handle config in sbi library */
+                } else if (!strcmp(amf_key, "nrf")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(amf_key, "scp")) {
+                    /* handle config in sbi library */
                 } else
                     ogs_warn("unknown key `%s`", amf_key);
             }
@@ -684,8 +677,7 @@ int test_context_parse_config(void)
                                         family, AF_UNSPEC, AF_INET, AF_INET6);
                                     family = AF_UNSPEC;
                                 }
-                            } else if (!strcmp(s1ap_key, "addr") ||
-                                    !strcmp(s1ap_key, "name")) {
+                            } else if (!strcmp(s1ap_key, "address")) {
                                 ogs_yaml_iter_t hostname_iter;
                                 ogs_yaml_iter_recurse(
                                         &s1ap_iter, &hostname_iter);
@@ -752,16 +744,6 @@ int test_context_parse_config(void)
                     } while (ogs_yaml_iter_type(&s1ap_array) ==
                             YAML_SEQUENCE_NODE);
 
-                    if (ogs_list_first(&self.s1ap_list) == NULL &&
-                        ogs_list_first(&self.s1ap_list6) == NULL) {
-                        rv = ogs_socknode_probe(
-                                ogs_app()->parameter.no_ipv4 ?
-                                    NULL : &self.s1ap_list,
-                                ogs_app()->parameter.no_ipv6 ?
-                                    NULL : &self.s1ap_list6,
-                                NULL, self.s1ap_port, NULL);
-                        ogs_assert(rv == OGS_OK);
-                    }
                 } else if (!strcmp(mme_key, "tai")) {
                     int num_of_list0 = 0;
                     int num_of_list1 = 0;

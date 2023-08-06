@@ -110,8 +110,10 @@ void ogs_nnrf_nfm_handle_nf_profile(
 
         if (nf_instance->num_of_ipv4 < OGS_SBI_MAX_NUM_OF_IP_ADDRESS) {
 
-            rv = ogs_getaddrinfo(&addr, AF_UNSPEC,
-                    node->data, ogs_sbi_client_default_port(), 0);
+            rv = ogs_getaddrinfo(
+                    &addr, AF_UNSPEC,
+                    node->data,
+                    ogs_sbi_default_client_port(OpenAPI_uri_scheme_NULL), 0);
             if (rv != OGS_OK) {
                 ogs_error("ogs_getaddrinfo[%s] failed", (char *)node->data);
                 continue;
@@ -131,8 +133,10 @@ void ogs_nnrf_nfm_handle_nf_profile(
 
         if (nf_instance->num_of_ipv6 < OGS_SBI_MAX_NUM_OF_IP_ADDRESS) {
 
-            rv = ogs_getaddrinfo(&addr, AF_UNSPEC,
-                    node->data, ogs_sbi_client_default_port(), 0);
+            rv = ogs_getaddrinfo(
+                    &addr, AF_UNSPEC,
+                    node->data,
+                    ogs_sbi_default_client_port(OpenAPI_uri_scheme_NULL), 0);
             if (rv != OGS_OK) {
                 ogs_error("ogs_getaddrinfo[%s] failed", (char *)node->data);
                 continue;
@@ -297,7 +301,7 @@ static void handle_nf_service(
 
         if (nf_service->num_of_addr < OGS_SBI_MAX_NUM_OF_IP_ADDRESS) {
             if (!IpEndPoint->is_port)
-                port = ogs_sbi_client_default_port();
+                port = ogs_sbi_default_client_port(nf_service->scheme);
             else
                 port = IpEndPoint->port;
 

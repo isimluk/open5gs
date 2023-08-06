@@ -130,14 +130,14 @@ static int sepp_context_prepare(void)
             advertise = server->node.addr;
         ogs_assert(advertise);
 
-        if (ogs_sbi_server_default_scheme() == OpenAPI_uri_scheme_https) {
+        if (server->scheme == OpenAPI_uri_scheme_https) {
             sepp_info->https.presence = true;
             sepp_info->https.port = OGS_PORT(advertise);
-        } else if (ogs_sbi_server_default_scheme() == OpenAPI_uri_scheme_http) {
+        } else if (server->scheme == OpenAPI_uri_scheme_http) {
             sepp_info->http.presence = true;
             sepp_info->http.port = OGS_PORT(advertise);
         } else {
-            ogs_error("Unknown scheme[%d]", ogs_sbi_server_default_scheme());
+            ogs_error("Unknown scheme[%d]", server->scheme);
             ogs_assert_if_reached();
         }
     }
@@ -186,19 +186,33 @@ int sepp_context_parse_config(void)
             while (ogs_yaml_iter_next(&sepp_iter)) {
                 const char *sepp_key = ogs_yaml_iter_key(&sepp_iter);
                 ogs_assert(sepp_key);
-                if (!strcmp(sepp_key, "sbi")) {
+                if (!strcmp(sepp_key, "defconfig")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(sepp_key, "sbi")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(sepp_key, "nrf")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(sepp_key, "scp")) {
                     /* handle config in sbi library */
                 } else if (!strcmp(sepp_key, "service_name")) {
                     /* handle config in sbi library */
                 } else if (!strcmp(sepp_key, "discovery")) {
                     /* handle config in sbi library */
-                } else if (!strcmp(sepp_key, "peer")) {
+                } else if (!strcmp(sepp_key, "sepp")) {
                     ogs_yaml_iter_t peer_array, peer_iter;
                     ogs_yaml_iter_recurse(&sepp_iter, &peer_array);
                     do {
                         sepp_node_t *sepp_node = NULL;
                         ogs_sbi_client_t *client = NULL;
+
                         const char *uri = NULL;
+
+                        bool insecure_skip_verify = false;
+                        const char *cacert = NULL;
+
+                        const char *client_private_key = NULL;
+                        const char *client_cert = NULL;
+
                         const char *mnc = NULL, *mcc = NULL;
 
                         if (ogs_yaml_iter_type(&peer_array) ==
@@ -222,6 +236,18 @@ int sepp_context_parse_config(void)
                             ogs_assert(peer_key);
                             if (!strcmp(peer_key, "uri")) {
                                 uri = ogs_yaml_iter_value(&peer_iter);
+                            } else if (!strcmp(peer_key,
+                                        "insecure_skip_verify")) {
+                                insecure_skip_verify =
+                                    ogs_yaml_iter_bool(&peer_iter);
+                            } else if (!strcmp(peer_key, "cacert")) {
+                                cacert = ogs_yaml_iter_value(&peer_iter);
+                            } else if (!strcmp(peer_key,
+                                        "client_private_key")) {
+                                client_private_key =
+                                    ogs_yaml_iter_value(&peer_iter);
+                            } else if (!strcmp(peer_key, "client_cert")) {
+                                client_cert = ogs_yaml_iter_value(&peer_iter);
                             } else if (!strcmp(peer_key, "target_plmn_id")) {
                                 ogs_yaml_iter_t plmn_id_iter;
 
@@ -239,7 +265,6 @@ int sepp_context_parse_config(void)
                                                 &plmn_id_iter);
                                     }
                                 }
-
                             } else
                                 ogs_warn("unknown key `%s`", peer_key);
                         }
@@ -251,6 +276,7 @@ int sepp_context_parse_config(void)
                             char *fqdn = NULL;
                             uint16_t fqdn_port = 0;
                             ogs_sockaddr_t *addr = NULL, *addr6 = NULL;
+
                             rc = ogs_sbi_getaddr_from_uri(
                                     &scheme, &fqdn, &fqdn_port, &addr, &addr6,
                                     (char *)uri);
@@ -276,6 +302,39 @@ int sepp_context_parse_config(void)
                                     scheme, fqdn, fqdn_port, NULL, NULL);
                             ogs_assert(client);
                             OGS_SBI_SETUP_CLIENT(sepp_node, client);
+
+                            if (insecure_skip_verify == true)
+                                client->insecure_skip_verify = true;
+
+                            if (cacert) {
+                                if (client->cacert)
+                                    ogs_free(client->cacert);
+                                client->cacert = ogs_strdup(cacert);
+                                ogs_assert(client->cacert);
+                            }
+
+                            if (client_private_key) {
+                                if (client->private_key)
+                                    ogs_free(client->private_key);
+                                client->private_key =
+                                    ogs_strdup(client_private_key);
+                                ogs_assert(client->private_key);
+                            }
+
+                            if (client_cert) {
+                                if (client->cert)
+                                    ogs_free(client->cert);
+                                client->cert = ogs_strdup(client_cert);
+                                ogs_assert(client->cert);
+                            }
+
+                            if ((!client_private_key && client_cert) ||
+                                (client_private_key && !client_cert)) {
+                                ogs_error("Either the private key or "
+                                        "certificate is missing.");
+                                return OGS_ERROR;
+                            }
+
 
                             if (mcc && mnc) {
                                 ogs_plmn_id_build(

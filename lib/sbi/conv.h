@@ -39,6 +39,8 @@ char *ogs_uridup(
         OpenAPI_uri_scheme_e scheme,
         char *fqdn, ogs_sockaddr_t *addr, ogs_sockaddr_t *addr6, uint16_t port,
         ogs_sbi_header_t *h);
+uint16_t ogs_sbi_uri_port_from_scheme_and_addr(
+        OpenAPI_uri_scheme_e scheme, ogs_sockaddr_t *addr);
 char *ogs_sbi_sockaddr_uri(
         OpenAPI_uri_scheme_e scheme,
         ogs_sockaddr_t *sa_list, ogs_sbi_header_t *h);
