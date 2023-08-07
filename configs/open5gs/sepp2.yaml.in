@@ -16,7 +16,7 @@ sepp:
 #    nrf:
 #      - uri: http://127.0.0.10:7777
     scp:
-      - uri: http://127.0.1.10:7777
+      - uri: http://127.0.2.10:7777
     sepp:
         uri: https://sepp1.localdomain:7777
         cacert: @sysconfdir@/open5gs/tls/ca.crt
