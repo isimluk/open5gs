@@ -161,8 +161,6 @@ static int request_handler(ogs_sbi_request_t *request, void *data)
     ogs_sbi_request_t sepp_request;
     char *apiroot = NULL, *newuri = NULL;
 
-    OpenAPI_nf_type_e requester_nf_type = OpenAPI_nf_type_NULL;
-
     sepp_assoc_t *assoc = NULL;
 
     struct {
@@ -195,16 +193,9 @@ static int request_handler(ogs_sbi_request_t *request, void *data)
          *  Each header field consists of a name followed by a colon (":")
          *  and the field value. Field names are case-insensitive.
          */
-        if (!strcasecmp(key, OGS_SBI_USER_AGENT)) {
-            if (val) requester_nf_type = OpenAPI_nf_type_FromString(val);
-        } else if (!strcasecmp(key, OGS_SBI_CUSTOM_TARGET_APIROOT)) {
+        if (!strcasecmp(key, OGS_SBI_CUSTOM_TARGET_APIROOT)) {
             headers.target_apiroot = val;
         }
-    }
-
-    if (!requester_nf_type) {
-        ogs_error("[%s] No User-Agent", request->h.uri);
-        return OGS_ERROR;
     }
 
     if (headers.target_apiroot) {
