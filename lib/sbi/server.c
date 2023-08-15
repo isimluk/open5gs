@@ -232,3 +232,8 @@ ogs_sbi_server_t *ogs_sbi_server_from_stream(ogs_sbi_stream_t *stream)
 {
     return ogs_sbi_server_actions.from_stream(stream);
 }
+
+char *ogs_sbi_server_id_context(ogs_sbi_server_t *server)
+{
+    return ogs_msprintf("%d", (int)ogs_pool_index(&server_pool, server));
+}

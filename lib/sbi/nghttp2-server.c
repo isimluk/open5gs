@@ -321,6 +321,7 @@ static int server_start(ogs_sbi_server_t *server,
         }
 
         if (server->verify_client_cacert) {
+            char *context = NULL;
             STACK_OF(X509_NAME) *cert_names = NULL;
 
             if (SSL_CTX_load_verify_locations(
@@ -330,8 +331,7 @@ static int server_start(ogs_sbi_server_t *server,
                         server->verify_client_cacert,
                         ERR_error_string(ERR_get_error(), NULL));
 
-                if (server->ssl_ctx)
-                    SSL_CTX_free(server->ssl_ctx);
+                SSL_CTX_free(server->ssl_ctx);
 
                 return OGS_ERROR;
             }
@@ -347,8 +347,7 @@ static int server_start(ogs_sbi_server_t *server,
                     server->verify_client_cacert,
                     ERR_error_string(ERR_get_error(), NULL));
 
-                if (server->ssl_ctx)
-                    SSL_CTX_free(server->ssl_ctx);
+                SSL_CTX_free(server->ssl_ctx);
 
                 return OGS_ERROR;
             }
@@ -359,6 +358,28 @@ static int server_start(ogs_sbi_server_t *server,
                     SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE |
                     SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
                     verify_callback);
+
+            context = ogs_sbi_server_id_context(server);
+            if (!context) {
+                ogs_error("ogs_sbi_server_id_context() failed");
+
+                SSL_CTX_free(server->ssl_ctx);
+
+                return OGS_ERROR;
+            }
+
+            if (!SSL_CTX_set_session_id_context(
+                        server->ssl_ctx,
+                        (unsigned char *)context, strlen(context))) {
+                ogs_error("SSL_CTX_set_session_id_context() failed");
+
+                ogs_free(context);
+                SSL_CTX_free(server->ssl_ctx);
+
+                return OGS_ERROR;
+            }
+
+            ogs_free(context);
         }
     }
 
@@ -753,13 +774,37 @@ static ogs_sbi_session_t *session_add(
     memcpy(sbi_sess->addr, &sock->remote_addr, sizeof(ogs_sockaddr_t));
 
     if (server->ssl_ctx) {
+        char *context = NULL;
+
         sbi_sess->ssl = SSL_new(server->ssl_ctx);
         if (!sbi_sess->ssl) {
             ogs_error("SSL_new() failed");
-            ogs_pool_free(&session_pool, sbi_sess);
             ogs_free(sbi_sess->addr);
+            ogs_pool_free(&session_pool, sbi_sess);
             return NULL;
         }
+
+        context = ogs_msprintf("%d",
+                (int)ogs_pool_index(&session_pool, sbi_sess));
+        if (!context) {
+            ogs_error("No memory for session id context");
+            SSL_free(sbi_sess->ssl);
+            ogs_free(sbi_sess->addr);
+            ogs_pool_free(&session_pool, sbi_sess);
+            return NULL;
+        }
+
+        if (!SSL_set_session_id_context(
+                    sbi_sess->ssl, (unsigned char *)context, strlen(context))) {
+            ogs_error("SSL_set_session_id_context() failed");
+            ogs_free(context);
+            ogs_free(sbi_sess->addr);
+            SSL_free(sbi_sess->ssl);
+            ogs_pool_free(&session_pool, sbi_sess);
+            return NULL;
+        }
+
+        ogs_free(context);
     }
 
     ogs_list_add(&server->session_list, sbi_sess);

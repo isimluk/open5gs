@@ -93,6 +93,7 @@ bool ogs_sbi_server_send_problem(
         ogs_sbi_stream_t *stream, OpenAPI_problem_details_t *problem);
 
 ogs_sbi_server_t *ogs_sbi_server_from_stream(ogs_sbi_stream_t *stream);
+char *ogs_sbi_server_id_context(ogs_sbi_server_t *server);
 
 #ifdef __cplusplus
 }
