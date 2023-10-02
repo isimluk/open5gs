@@ -277,6 +277,7 @@ $ sudo pkill -9 open5gs-hssd
 $ sudo pkill -9 open5gs-pcrfd
 $ sudo pkill -9 open5gs-nrfd
 $ sudo pkill -9 open5gs-scpd
+$ sudo pkill -9 open5gs-seppd
 $ sudo pkill -9 open5gs-ausfd
 $ sudo pkill -9 open5gs-udmd
 $ sudo pkill -9 open5gs-pcfd
@@ -326,12 +327,12 @@ index a70143f08..e0dba560c 100644
 ### FIRST smf.yaml
 
 $ diff --git a/configs/open5gs/smf.yaml.in b/configs/open5gs/smf.yaml.in
-index 82e3b3cad..af5a26625 100644
+index 758ca9cb9..6800eeeec 100644
 --- a/configs/open5gs/smf.yaml.in
 +++ b/configs/open5gs/smf.yaml.in
 @@ -7,6 +7,11 @@ max:
  #    peer: 64
-
+ 
  smf:
 +    info:
 +      - s_nssai:
@@ -339,19 +340,19 @@ index 82e3b3cad..af5a26625 100644
 +            dnn:
 +              - internet
      sbi:
-       - address: 127.0.0.4
-         port: 7777
+       server:
+         - address: 127.0.0.4
 
 
 ### SECOND smf.yaml
 
 $ diff --git a/configs/open5gs/smf.yaml.in b/configs/open5gs/smf.yaml.in
-index 82e3b3cad..6041431cc 100644
+index 758ca9cb9..c3879fc70 100644
 --- a/configs/open5gs/smf.yaml.in
 +++ b/configs/open5gs/smf.yaml.in
 @@ -7,6 +7,12 @@ max:
  #    peer: 64
-
+ 
  smf:
 +    info:
 +      - s_nssai:
@@ -360,25 +361,30 @@ index 82e3b3cad..6041431cc 100644
 +            dnn:
 +              - internet
      sbi:
-       - address: 127.0.0.4
-         port: 7777
+       server:
+         - address: 127.0.0.4
 
 
 ### nssf.yaml
 
 $ diff --git a/configs/open5gs/nssf.yaml.in b/configs/open5gs/nssf.yaml.in
-index 3166ebb1c..8a016e329 100644
+index d01645b2c..48ed3f8ee 100644
 --- a/configs/open5gs/nssf.yaml.in
 +++ b/configs/open5gs/nssf.yaml.in
-@@ -18,6 +18,11 @@ nssf:
-       - uri: http://127.0.0.10:7777
-         s_nssai:
-           sst: 1
-+      - uri: http://127.0.0.10:7777
-+        s_nssai:
-+          sst: 1
-+          sd: 000080
+@@ -20,6 +20,11 @@ nssf:
+           - uri: http://127.0.0.10:7777
+             s_nssai:
+               sst: 1
++          - uri: http://127.0.0.10:7777
++            s_nssai:
++              sst: 1
++              sd: 000080
 +
+
+ ################################################################################
+ # SBI Server
+ ################################################################################
+
  ################################################################################
  # Network Slice Instance(NSI)
  ################################################################################
@@ -410,6 +416,7 @@ And the process below is only used in 5G, so there is no need to run it.
 ```bash
 $ open5gs-nrfd
 $ open5gs-scpd
+$ open5gs-seppd
 $ open5gs-amfd
 $ open5gs-ausfd
 $ open5gs-udmd
@@ -433,22 +440,32 @@ To prevent SMF from attempting to access the 5G NRF, you need to modify the SMF 
 
 ```diff
 $ diff --git a/configs/open5gs/smf.yaml.in b/configs/open5gs/smf.yaml.in
-index 82e3b3cad..828aede85 100644
+index 758ca9cb9..a9004ba9a 100644
 --- a/configs/open5gs/smf.yaml.in
 +++ b/configs/open5gs/smf.yaml.in
-@@ -7,9 +7,9 @@ max:
+@@ -7,15 +7,15 @@ max:
  #    peer: 64
-
+ 
  smf:
 -    sbi:
--      - address: 127.0.0.4
--        port: 7777
+-      server:
+-        - address: 127.0.0.4
+-          port: 7777
+-      client:
 +#    sbi:
-+#      - address: 127.0.0.4
-+#        port: 7777
- #    nrf:
- #      - uri: http://127.0.0.10:7777
-     scp:
++#      server:
++#        - address: 127.0.0.4
++#          port: 7777
++#      client:
+ #        nrf:
+ #          - uri: http://127.0.0.10:7777
+-        scp:
+-          - uri: http://127.0.0.200:7777
++#        scp:
++#          - uri: http://127.0.0.200:7777
+     pfcp:
+       server:
+         - address: 127.0.0.4
 ```
 
 If you set as above and run SMF, you do not need to run NRF. Seven daemons operate in 4G only state.
@@ -484,32 +501,31 @@ Now, you need to modify the configuration file of Open5GS to adjust the UE IP Po
 
 ```diff
 $ diff --git a/configs/open5gs/smf.yaml.in b/configs/open5gs/smf.yaml.in
-index 82e3b3cad..421b69229 100644
+index 758ca9cb9..5c9b97cd0 100644
 --- a/configs/open5gs/smf.yaml.in
 +++ b/configs/open5gs/smf.yaml.in
-@@ -28,6 +28,7 @@ smf:
+@@ -33,7 +33,7 @@ smf:
+         - address: 127.0.0.4
+           port: 9090
      session:
-       - subnet: 10.45.0.1/16
-       - subnet: 2001:db8:cafe::1/48
+-      - subnet: 10.45.0.1/16
 +      - subnet: 10.46.0.1/16
+       - subnet: 2001:db8:cafe::1/48
      dns:
        - 8.8.8.8
-       - 8.8.4.4
-```
-
-```diff
-diff --git a/configs/open5gs/upf.yaml.in b/configs/open5gs/upf.yaml.in
-index 9e9958fde..2964a5391 100644
+$ diff --git a/configs/open5gs/upf.yaml.in b/configs/open5gs/upf.yaml.in
+index e78b018f1..23cb273f8 100644
 --- a/configs/open5gs/upf.yaml.in
 +++ b/configs/open5gs/upf.yaml.in
-@@ -16,6 +16,7 @@ upf:
+@@ -17,7 +17,7 @@ upf:
+       server:
+         - address: 127.0.0.7
      session:
-       - subnet: 10.45.0.1/16
-       - subnet: 2001:db8:cafe::1/48
+-      - subnet: 10.45.0.1/16
 +      - subnet: 10.46.0.1/16
+       - subnet: 2001:db8:cafe::1/48
      metrics:
-       - address: 127.0.0.7
-         port: 9090
+       server:
 ```
 
 Restart SMF/UPF
@@ -600,6 +616,7 @@ $ sudo pkill -9 open5gs-hssd
 $ sudo pkill -9 open5gs-pcrfd
 $ sudo pkill -9 open5gs-nrfd
 $ sudo pkill -9 open5gs-scpd
+$ sudo pkill -9 open5gs-seppd
 $ sudo pkill -9 open5gs-ausfd
 $ sudo pkill -9 open5gs-udmd
 $ sudo pkill -9 open5gs-pcfd
@@ -828,36 +845,57 @@ See the following example.
 ```
 ### For reference, see `mme.yaml`
 #
-# smf:
-#
-#  <GTP-C Client>
-#
-#  o By default, the SMF uses the first SMF node.
-#    - To use a different DNN/APN for each SMF, specify gtpc.dnn
-#      as the DNN/APN name.
-#    - If the HSS uses WebUI to set the SMF IP for each UE,
-#      you can use a specific SMF node for each UE.
-#
-#  o Two SMF are defined. 127.0.0.4:2123 is used.
-#    [fe80::3%lo]:2123 is ignored.
+################################################################################
+# GTP-C Client
+################################################################################
+#  o SGW selection by eNodeB TAC
+#   (either single TAC or multiple TACs, DECIMAL representation)
 #    gtpc:
-#      - address: 127.0.0.4
-#      - address: fe80::3%lo
+#      client:
+#        sgwc:
+#          - address: 127.0.0.3
+#            tac: 26000
+#          - address: 127.0.2.2
+#            tac: [25000, 27000, 28000]
 #
-#  o Two SMF are defined with a different DNN/APN.
-#    - Note that if SMF IP for UE is configured in HSS,
-#      the following configurion for this UE is ignored.
+#  o SGW selection by e_cell_id(28bit)
+#   (either single or multiple e_cell_id, HEX representation)
 #    gtpc:
-#      - address: 127.0.0.4
-#        dnn: internet
-#      - address: 127.0.0.5
-#        dnn: volte
+#      client:
+#        sgwc:
+#          - address: 127.0.0.3
+#            e_cell_id: abcde01
+#          - address: 127.0.2.2
+#            e_cell_id: [12345, a9413, 98765]
 #
-#  o If DNN/APN is omitted, the default DNN/APN uses the first SMF node.
+#  o SMF selection by APN
 #    gtpc:
-#      - address: 127.0.0.4
-#      - address: 127.0.0.5
-#        dnn: volte
+#      client:
+#        smf:
+#          - address: 127.0.0.4
+#            apn: internet
+#          - address: 127.0.0.5
+#            apn: volte
+#
+#  o SMF selection by eNodeB TAC
+#   (either single TAC or multiple TACs, DECIMAL representation)
+#    gtpc:
+#      client:
+#        smf:
+#          - address: 127.0.0.4
+#            tac: 26000
+#          - address: 127.0.2.4
+#            tac: [25000, 27000, 28000]
+#
+#  o SMF selection by e_cell_id(28bit)
+#   (either single or multiple e_cell_id, HEX representation)
+#    gtpc:
+#      client:
+#        smf:
+#          - address: 127.0.0.4
+#            e_cell_id: abcde01
+#          - address: 127.0.2.4
+#            e_cell_id: [12345, a9413, 98765]
 ```
 
 The IP address of the UE can also use a different UE pool depending on the DNN/APN.
@@ -1054,7 +1092,10 @@ Currently, the number of UE is limited to `128*128`.
 * HSS : 127.0.0.8
 * PCRF : 127.0.0.9
 * NRF : 127.0.0.10
-* SCP : 127.0.1.10
+* SCP : 127.0.0.200
+* SEPP : 127.0.0.250
+* SEPP-n32 : 127.0.0.251
+* SEPP-n32f : 127.0.0.252
 * AUSF : 127.0.0.11
 * UDM : 127.0.0.12
 * PCF : 127.0.0.13

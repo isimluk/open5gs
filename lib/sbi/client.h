@@ -73,6 +73,8 @@ typedef struct ogs_sbi_client_s {
     ogs_sockaddr_t  *addr;
     ogs_sockaddr_t  *addr6;
 
+    char *resolve;
+
     ogs_timer_t     *t_curl;            /* timer for CURL */
     ogs_list_t      connection_list;    /* CURL connection list */
 

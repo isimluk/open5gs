@@ -100,11 +100,12 @@ void sepp_n32c_handshake_send_security_capability_response(
     int i;
     OpenAPI_lnode_t *node = NULL;
 
+    ogs_assert(sepp_self()->sender);
     ogs_assert(sepp_node);
     ogs_assert(stream);
 
     memset(&SecNegotiateRspData, 0, sizeof(SecNegotiateRspData));
-    SecNegotiateRspData.sender = sepp_self()->fqdn;
+    SecNegotiateRspData.sender = sepp_self()->sender;
     SecNegotiateRspData.selected_sec_capability =
         sepp_node->negotiated_security_scheme;
 
@@ -157,6 +158,7 @@ static int request_handler(ogs_sbi_request_t *request, void *data)
     ogs_hash_index_t *hi;
     ogs_sbi_client_t *client = NULL, *scp_client = NULL;
     ogs_sbi_stream_t *stream = data;
+    ogs_sbi_server_t *server = NULL;
 
     ogs_sbi_request_t sepp_request;
     char *apiroot = NULL, *newuri = NULL;
@@ -176,6 +178,8 @@ static int request_handler(ogs_sbi_request_t *request, void *data)
     ogs_assert(request);
     ogs_assert(request->h.uri);
     ogs_assert(stream);
+    server = ogs_sbi_server_from_stream(stream);
+    ogs_assert(server);
 
     /* Extract HTTP Header */
     for (hi = ogs_hash_first(request->http.headers);
@@ -214,6 +218,13 @@ static int request_handler(ogs_sbi_request_t *request, void *data)
         if (ogs_sbi_fqdn_in_vplmn(headers.target_apiroot) == true) {
             uint16_t mcc = 0, mnc = 0;
 
+            if (server->interface) {
+                ogs_error("[DROP] Peer SEPP is using "
+                        "the wrong interface[%s]", server->interface);
+                sepp_assoc_remove(assoc);
+                return OGS_ERROR;
+            }
+
             mcc = ogs_plmn_id_mcc_from_fqdn(headers.target_apiroot);
             ogs_assert(mcc);
             mnc = ogs_plmn_id_mnc_from_fqdn(headers.target_apiroot);
@@ -230,12 +241,15 @@ static int request_handler(ogs_sbi_request_t *request, void *data)
                 return OGS_ERROR;
             }
 
-            client = NF_INSTANCE_CLIENT(sepp_node);
+            client = NF_INSTANCE_CLIENT(&sepp_node->n32f);
             if (!client) {
-                ogs_error("No Client in SEPP Peer Node [%s:%d:%d]",
-                        headers.target_apiroot, mcc, mnc);
-                sepp_assoc_remove(assoc);
-                return OGS_ERROR;
+                client = NF_INSTANCE_CLIENT(sepp_node);
+                if (!client) {
+                    ogs_error("No Client in SEPP Peer Node [%s:%d:%d]",
+                            headers.target_apiroot, mcc, mnc);
+                    sepp_assoc_remove(assoc);
+                    return OGS_ERROR;
+                }
             }
 
             /* Client ApiRoot */
@@ -250,6 +264,29 @@ static int request_handler(ogs_sbi_request_t *request, void *data)
             char *fqdn = NULL;
             uint16_t fqdn_port = 0;
             ogs_sockaddr_t *addr = NULL, *addr6 = NULL;
+
+            if (server->interface == NULL) {
+                if (ogs_sbi_server_first_by_interface(
+                            OGS_SBI_INTERFACE_NAME_SEPP) ||
+                    ogs_sbi_server_first_by_interface(
+                            OGS_SBI_INTERFACE_NAME_N32F)) {
+                    ogs_error("[DROP] Peer SEPP is using "
+                            "the wrong interface[%s]", server->interface);
+                    sepp_assoc_remove(assoc);
+                    return OGS_ERROR;
+                }
+            } else {
+                if (strcmp(server->interface,
+                            OGS_SBI_INTERFACE_NAME_SEPP) == 0) {
+                    if (ogs_sbi_server_first_by_interface(
+                                OGS_SBI_INTERFACE_NAME_N32F)) {
+                        ogs_error("[DROP] Peer SEPP is using "
+                                "the wrong interface[%s]", server->interface);
+                        sepp_assoc_remove(assoc);
+                        return OGS_ERROR;
+                    }
+                }
+            }
 
             /* Find or Add Client Instance */
             rc = ogs_sbi_getaddr_from_uri(
@@ -341,6 +378,13 @@ static int request_handler(ogs_sbi_request_t *request, void *data)
      ***************************************/
     ogs_assert(request);
     ogs_assert(data);
+
+    if (server->interface &&
+        strcmp(server->interface, OGS_SBI_INTERFACE_NAME_N32F) == 0) {
+        ogs_error("[DROP] Peer SEPP is using the wrong interface[%s]",
+                server->interface);
+        return OGS_ERROR;
+    }
 
     e = sepp_event_new(OGS_EVENT_SBI_SERVER);
     ogs_assert(e);

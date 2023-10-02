@@ -8,10 +8,12 @@ max:
 
 scp:
     sbi:
-      - address: 127.0.1.10
-        port: 7777
-    nrf:
-      - uri: http://127.0.0.10:7777
+      server:
+        - address: 127.0.0.200
+          port: 7777
+      client:
+        nrf:
+          - uri: http://127.0.0.10:7777
 
 ################################################################################
 # SCP Info
@@ -63,51 +65,22 @@ scp:
 ################################################################################
 #  o Override SBI address to be advertised to NRF
 #    sbi:
-#      - dev: eth0
-#        advertise: open5gs-scp.svc.local
+#      server:
+#        - dev: eth0
+#          advertise: open5gs-scp.svc.local
 #
 #    sbi:
-#      - address: localhost
-#        advertise:
-#          - 127.0.0.99
-#          - ::1
+#      server:
+#        - address: localhost
+#          advertise:
+#            - 127.0.0.99
+#            - ::1
 #
 ################################################################################
-# HTTPS scheme with TLS
+# SBI Client
 ################################################################################
-#  o Set as default if not individually set
-#    defconfig:
-#      tls:
-#        server:
-#          scheme: https
-#          private_key: @sysconfdir@/open5gs/tls/scp.key
-#          cert: @sysconfdir@/open5gs/tls/scp.crt
-#        client:
-#          scheme: https
-#          cacert: @sysconfdir@/open5gs/tls/ca.crt
-#
-#  o Override default configuration on individual servers and clients
+#  o Direct communication with NRF interaction
 #    sbi:
-#      - scheme: https
-#        address: scp.localdomain
-#        port: 7777
-#        private_key: @sysconfdir@/open5gs/tls/scp.key
-#        cert: @sysconfdir@/open5gs/tls/scp.crt
-#    nrf:
-#      - uri: https://nrf.localdomain:7777
-#        cacert: @sysconfdir@/open5gs/tls/ca.crt
-#
-#  o Add client TLS verification
-#    sbi:
-#      - scheme: https
-#        address: scp.localdomain
-#        port: 7777
-#        private_key: @sysconfdir@/open5gs/tls/scp.key
-#        cert: @sysconfdir@/open5gs/tls/scp.crt
-#        verify_client: true
-#        verify_client_cacert: @sysconfdir@/open5gs/tls/ca.crt
-#    nrf:
-#      - uri: https://nrf.localdomain:7777
-#        cacert: @sysconfdir@/open5gs/tls/ca.crt
-#        client_private_key: @sysconfdir@/open5gs/tls/scp.key
-#        client_cert: @sysconfdir@/open5gs/tls/scp.crt
+#      client:
+#        nrf:
+#          - uri: http://127.0.0.10:7777

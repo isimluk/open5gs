@@ -608,6 +608,50 @@ bool ogs_sbi_getpath_from_uri(char **path, char *uri)
     return true;
 }
 
+char *ogs_sbi_client_resolve(
+        OpenAPI_uri_scheme_e scheme,
+        char *fqdn, uint16_t fqdn_port,
+        const char **resolve, int num_of_resolve)
+{
+    int i;
+    uint16_t port;
+    char *result = NULL;
+
+    ogs_assert(scheme);
+    ogs_assert(fqdn);
+    ogs_assert(resolve);
+    ogs_assert(resolve[0]);
+    ogs_assert(num_of_resolve);
+
+    port = fqdn_port;
+    if (!port) {
+        if (scheme == OpenAPI_uri_scheme_https)
+            port = OGS_SBI_HTTPS_PORT;
+        else if (scheme == OpenAPI_uri_scheme_http)
+            port = OGS_SBI_HTTP_PORT;
+        else
+            ogs_assert_if_reached();
+    }
+
+    result = ogs_msprintf("%s:%d:%s", fqdn, port, resolve[0]);
+    if (!result) {
+        ogs_error("ogs_msprintf() failed");
+        return NULL;
+    }
+
+    for (i = 1; i < num_of_resolve; i++) {
+        ogs_assert(resolve[i]);
+        result = ogs_mstrcatf(result, ",%s", resolve[i]);
+        if (!result) {
+            ogs_error("ogs_mstrcatf() failed");
+            ogs_free(result);
+            return NULL;
+        }
+    }
+
+    return result;
+}
+
 char *ogs_sbi_bitrate_to_string(uint64_t bitrate, int unit)
 {
     if (unit == OGS_SBI_BITRATE_KBPS) {

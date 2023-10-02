@@ -36,36 +36,37 @@ bool sepp_n32c_handshake_handle_security_capability_request(
 
     SecNegotiateReqData = recvmsg->SecNegotiateReqData;
     if (!SecNegotiateReqData) {
-        ogs_error("[%s] No SecNegotiateReqData", sepp_node->fqdn);
+        ogs_error("[%s] No SecNegotiateReqData", sepp_node->receiver);
         ogs_assert(true ==
             ogs_sbi_server_send_error(stream,
                 OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                recvmsg, "No SecNegotiateReqData", sepp_node->fqdn));
+                recvmsg, "No SecNegotiateReqData", sepp_node->receiver));
         return false;
     }
 
     if (!SecNegotiateReqData->sender) {
-        ogs_error("[%s] No SecNegotiateReqData.sender", sepp_node->fqdn);
+        ogs_error("[%s] No SecNegotiateReqData.sender", sepp_node->receiver);
         ogs_assert(true ==
             ogs_sbi_server_send_error(stream,
                 OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                recvmsg, "No SecNegotiateReqData.sender", sepp_node->fqdn));
+                recvmsg, "No SecNegotiateReqData.sender", sepp_node->receiver));
         return false;
     }
 
-    ogs_assert(sepp_node->fqdn);
-    if (strcmp(SecNegotiateReqData->sender, sepp_node->fqdn) != 0) {
+    ogs_assert(sepp_node->receiver);
+    if (strcmp(SecNegotiateReqData->sender, sepp_node->receiver) != 0) {
         ogs_error("[%s] FQDN mismatch Sender [%s]",
-                sepp_node->fqdn, SecNegotiateReqData->sender);
+                sepp_node->receiver, SecNegotiateReqData->sender);
         return false;
     }
 
     if (!SecNegotiateReqData->supported_sec_capability_list) {
-        ogs_error("[%s] No supported_sec_capability_list", sepp_node->fqdn);
+        ogs_error("[%s] No supported_sec_capability_list", sepp_node->receiver);
         ogs_assert(true ==
             ogs_sbi_server_send_error(stream,
                 OGS_SBI_HTTP_STATUS_BAD_REQUEST,
-                recvmsg, "No supported_sec_capability_list", sepp_node->fqdn));
+                recvmsg, "No supported_sec_capability_list",
+                sepp_node->receiver));
         return false;
     }
 
@@ -97,13 +98,13 @@ bool sepp_n32c_handshake_handle_security_capability_request(
             OpenAPI_security_capability_e security_capability =
                 (uintptr_t)node->data;
             ogs_error("[%s] Unknown SupportedSecCapability [%d]",
-                    sepp_node->fqdn, security_capability);
+                    sepp_node->receiver, security_capability);
         }
         ogs_assert(true ==
             ogs_sbi_server_send_error(stream,
                 OGS_SBI_HTTP_STATUS_BAD_REQUEST,
                 recvmsg, "Unknown SupportedSecCapability",
-                sepp_node->fqdn));
+                sepp_node->receiver));
         return false;
     }
 
@@ -150,24 +151,24 @@ bool sepp_n32c_handshake_handle_security_capability_response(
 
     SecNegotiateRspData = recvmsg->SecNegotiateRspData;
     if (!SecNegotiateRspData) {
-        ogs_error("[%s] No SecNegotiateRspData", sepp_node->fqdn);
+        ogs_error("[%s] No SecNegotiateRspData", sepp_node->receiver);
         return false;
     }
 
     if (!SecNegotiateRspData->sender) {
-        ogs_error("[%s] No SecNegotiateRspData.sender", sepp_node->fqdn);
+        ogs_error("[%s] No SecNegotiateRspData.sender", sepp_node->receiver);
         return false;
     }
 
-    ogs_assert(sepp_node->fqdn);
-    if (strcmp(SecNegotiateRspData->sender, sepp_node->fqdn) != 0) {
+    ogs_assert(sepp_node->receiver);
+    if (strcmp(SecNegotiateRspData->sender, sepp_node->receiver) != 0) {
         ogs_error("[%s] FQDN mismatch Sender [%s]",
-                sepp_node->fqdn, SecNegotiateRspData->sender);
+                sepp_node->receiver, SecNegotiateRspData->sender);
         return false;
     }
 
     if (!SecNegotiateRspData->selected_sec_capability) {
-        ogs_error("[%s] No selected_sec_capability", sepp_node->fqdn);
+        ogs_error("[%s] No selected_sec_capability", sepp_node->receiver);
         return false;
     }
 

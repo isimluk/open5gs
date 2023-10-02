@@ -85,7 +85,8 @@ static int scp_context_prepare(void)
 
     scp_info = &nf_info->scp;
 
-    ogs_list_for_each(&ogs_sbi_self()->server_list, server) {
+    for (server = ogs_sbi_server_first();
+            server; server = ogs_sbi_server_next(server)) {
         ogs_sockaddr_t *advertise = NULL;
 
         advertise = server->advertise;

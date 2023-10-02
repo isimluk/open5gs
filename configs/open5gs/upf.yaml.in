@@ -8,48 +8,55 @@ max:
 
 upf:
     pfcp:
-      - address: 127.0.0.7
-#    smf:     #  UPF PFCP Client try to associate SMF PFCP Server
-#      - address: 127.0.0.4
+      server:
+        - address: 127.0.0.7
+      client:
+#        smf:     #  UPF PFCP Client try to associate SMF PFCP Server
+#          - address: 127.0.0.4
     gtpu:
-      - address: 127.0.0.7
+      server:
+        - address: 127.0.0.7
     session:
       - subnet: 10.45.0.1/16
       - subnet: 2001:db8:cafe::1/48
     metrics:
-      - address: 127.0.0.7
-        port: 9090
+      server:
+        - address: 127.0.0.7
+          port: 9090
 
 ################################################################################
 # PFCP Server
 ################################################################################
 # o Override PFCP address to be advertised to SMF in PFCP association
 #    pfcp:
-#      - dev: eth0
-#        advertise: open5gs-upf.svc.local
+#      server:
+#        - dev: eth0
+#          advertise: open5gs-upf.svc.local
 #
 ################################################################################
 # GTP-U Server
 ################################################################################
 # o Override SGW-U GTP-U address to be advertised inside S1AP messages 
 #    gtpu:
-#      - dev: ens3
-#        advertise: upf1.5gc.mnc001.mcc001.3gppnetwork.org
+#      server:
+#        - dev: ens3
+#          advertise: upf1.5gc.mnc001.mcc001.3gppnetwork.org
 #
 # o User Plane IP Resource information
 #    gtpu:
-#      - address:
-#        - 127.0.0.7
-#        - ::1
-#        teid_range_indication: 4
-#        teid_range: 10
-#        network_instance: internet
-#        source_interface: 0
-#      - address: 127.0.10.4
-#        teid_range_indication: 4
-#        teid_range: 5
-#        network_instance: ims
-#        source_interface: 1
+#      server:
+#        - address:
+#          - 127.0.0.7
+#          - ::1
+#          teid_range_indication: 4
+#          teid_range: 10
+#          network_instance: internet
+#          source_interface: 0
+#        - address: 127.0.10.4
+#          teid_range_indication: 4
+#          teid_range: 5
+#          network_instance: ims
+#          source_interface: 1
 #
 ################################################################################
 # 3GPP Specification

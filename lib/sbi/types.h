@@ -163,6 +163,9 @@ OpenAPI_nf_type_e ogs_sbi_service_type_to_nf_type(
 const char *ogs_sbi_service_type_to_name(ogs_sbi_service_type_e service_type);
 ogs_sbi_service_type_e ogs_sbi_service_type_from_name(const char *service_name);
 
+#define OGS_SBI_INTERFACE_NAME_SEPP "sepp"
+#define OGS_SBI_INTERFACE_NAME_N32F "n32f"
+
 #ifdef __cplusplus
 }
 #endif

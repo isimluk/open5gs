@@ -16,10 +16,21 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 examples_conf = '''
-    roaming-lbo-vplmn.yaml
-    roaming-lbo-hplmn.yaml
-    999-01.yaml
-    001-01.yaml
+    5gc-sepp1-999-70.yaml
+    5gc-sepp2-001-01.yaml
+    5gc-sepp3-315-010.yaml
+    5gc-tls-sepp1-999-70.yaml
+    5gc-tls-sepp2-001-01.yaml
+    5gc-tls-sepp3-315-010.yaml
+    gnb-999-70-ue-999-70.yaml
+    gnb-999-70-ue-001-01.yaml
+    gnb-999-70-ue-315-010.yaml
+    gnb-001-01-ue-999-70.yaml
+    gnb-001-01-ue-001-01.yaml
+    gnb-001-01-ue-315-010.yaml
+    gnb-315-010-ue-999-70.yaml
+    gnb-315-010-ue-001-01.yaml
+    gnb-315-010-ue-315-010.yaml
 '''.split()
 
 foreach file : examples_conf

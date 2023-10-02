@@ -98,6 +98,162 @@ int nssf_context_parse_config(void)
                     /* handle config in sbi library */
                 } else if (!strcmp(nssf_key, "sbi")) {
                     /* handle config in sbi library */
+                    ogs_yaml_iter_t sbi_iter;
+                    ogs_yaml_iter_recurse(&nssf_iter, &sbi_iter);
+                    while (ogs_yaml_iter_next(&sbi_iter)) {
+                        const char *sbi_key = ogs_yaml_iter_key(&sbi_iter);
+                        ogs_assert(sbi_key);
+                        if (!strcmp(sbi_key, "server")) {
+                        } else if (!strcmp(sbi_key, "client")) {
+                            ogs_yaml_iter_t client_iter;
+                            ogs_yaml_iter_recurse(&sbi_iter, &client_iter);
+                            while (ogs_yaml_iter_next(&client_iter)) {
+                                const char *client_key =
+                                    ogs_yaml_iter_key(&client_iter);
+                                ogs_assert(client_key);
+                                if (!strcmp(client_key, "nsi")) {
+                                    ogs_yaml_iter_t nsi_array, nsi_iter;
+                                    ogs_yaml_iter_recurse(&client_iter,
+                                            &nsi_array);
+                                    do {
+                                        const char *uri = NULL;
+                                        const char *sst = NULL, *sd = NULL;
+
+                                        if (ogs_yaml_iter_type(&nsi_array) ==
+                                                YAML_MAPPING_NODE) {
+                                            memcpy(&nsi_iter, &nsi_array,
+                                                    sizeof(ogs_yaml_iter_t));
+                                        } else if (ogs_yaml_iter_type(
+                                                    &nsi_array) ==
+                                                YAML_SEQUENCE_NODE) {
+                                            if (!ogs_yaml_iter_next(&nsi_array))
+                                                break;
+                                            ogs_yaml_iter_recurse(
+                                                    &nsi_array, &nsi_iter);
+                                        } else if (ogs_yaml_iter_type(
+                                                    &nsi_array) ==
+                                                YAML_SCALAR_NODE) {
+                                            break;
+                                        } else
+                                            ogs_assert_if_reached();
+
+                                        while (ogs_yaml_iter_next(&nsi_iter)) {
+                                            const char *nsi_key =
+                                                ogs_yaml_iter_key(&nsi_iter);
+                                            ogs_assert(nsi_key);
+                                            if (!strcmp(nsi_key, "uri")) {
+                                                uri = ogs_yaml_iter_value(
+                                                        &nsi_iter);
+                                            } else if (!strcmp(nsi_key,
+                                                        "s_nssai")) {
+                                                ogs_yaml_iter_t s_nssai_iter;
+                                                ogs_yaml_iter_recurse(&nsi_iter,
+                                                        &s_nssai_iter);
+
+                                                while (ogs_yaml_iter_next(
+                                                            &s_nssai_iter)) {
+                                                    const char *s_nssai_key =
+                                                        ogs_yaml_iter_key(
+                                                                &s_nssai_iter);
+                                                    ogs_assert(s_nssai_key);
+
+                                                    if (!strcmp(s_nssai_key,
+                                                                "sst")) {
+                                                        sst =
+                                                            ogs_yaml_iter_value(
+                                                                &s_nssai_iter);
+                                                    } else if (!strcmp(
+                                                                s_nssai_key,
+                                                                "sd")) {
+                                                        sd =
+                                                            ogs_yaml_iter_value(
+                                                                &s_nssai_iter);
+                                                    } else
+                                                        ogs_warn(
+                                                            "unknown key `%s`",
+                                                            s_nssai_key);
+                                                }
+                                            } else
+                                                ogs_warn("unknown key `%s`",
+                                                        nsi_key);
+                                        }
+
+                                        if (uri) {
+                                            bool rc;
+
+                                            OpenAPI_uri_scheme_e scheme =
+                                                OpenAPI_uri_scheme_NULL;
+
+                                            char *fqdn = NULL;
+                                            uint16_t fqdn_port = 0;
+                                            ogs_sockaddr_t *addr = NULL;
+                                            ogs_sockaddr_t *addr6 = NULL;
+
+                                            ogs_sbi_header_t h;
+                                            uint16_t port = 0;
+
+                                            nssf_nsi_t *nsi = NULL;
+                                            char *nrf_id = NULL;
+
+                                            rc = ogs_sbi_getaddr_from_uri(
+                                                    &scheme, &fqdn, &fqdn_port,
+                                                    &addr, &addr6,
+                                                    (char *)uri);
+                                            if (rc == false) {
+                                                if (!scheme)
+                                                    ogs_error("Invalid Scheme "
+                                                            "in URI[%s]", uri);
+                                                else
+                                                    ogs_error("Invalid URI[%s]",
+                                                            uri);
+
+                                                return OGS_ERROR;
+                                            }
+
+                                            if (fqdn) {
+                                                port = fqdn_port;
+                                            } else {
+                                                if (addr6) {
+                                                    port = ogs_sbi_uri_port_from_scheme_and_addr(
+                                                            scheme, addr6);
+                                                } else if (addr) {
+                                                    port = ogs_sbi_uri_port_from_scheme_and_addr(
+                                                            scheme, addr);
+                                                }
+                                            }
+
+                                            memset(&h, 0, sizeof(h));
+                                            h.service.name = (char *)OGS_SBI_SERVICE_NAME_NNRF_DISC;
+                                            h.api.version =
+                                                (char *)OGS_SBI_API_V1;
+                                            h.resource.component[0] = (char *)OGS_SBI_RESOURCE_NAME_NF_INSTANCES;
+
+                                            nrf_id = ogs_uridup(
+                                                    scheme, fqdn,
+                                                    addr, addr6, port, &h);
+                                            ogs_assert(nrf_id);
+
+                                            nsi = nssf_nsi_add(
+                                                    nrf_id,
+                                                    atoi(sst),
+                                                    ogs_s_nssai_sd_from_string(
+                                                        sd));
+                                            ogs_assert(nsi);
+
+                                            ogs_free(nrf_id);
+
+                                            ogs_free(fqdn);
+                                            ogs_freeaddrinfo(addr);
+                                            ogs_freeaddrinfo(addr6);
+                                        }
+
+                                    } while (ogs_yaml_iter_type(&nsi_array) ==
+                                            YAML_SEQUENCE_NODE);
+                                }
+                            }
+                        } else
+                            ogs_warn("unknown key `%s`", sbi_key);
+                    }
                 } else if (!strcmp(nssf_key, "nrf")) {
                     /* handle config in sbi library */
                 } else if (!strcmp(nssf_key, "scp")) {
@@ -106,123 +262,6 @@ int nssf_context_parse_config(void)
                     /* handle config in sbi library */
                 } else if (!strcmp(nssf_key, "discovery")) {
                     /* handle config in sbi library */
-                } else if (!strcmp(nssf_key, "nsi")) {
-                    ogs_yaml_iter_t nsi_array, nsi_iter;
-                    ogs_yaml_iter_recurse(&nssf_iter, &nsi_array);
-                    do {
-                        const char *uri = NULL;
-                        const char *sst = NULL, *sd = NULL;
-
-                        if (ogs_yaml_iter_type(&nsi_array) ==
-                                YAML_MAPPING_NODE) {
-                            memcpy(&nsi_iter, &nsi_array,
-                                    sizeof(ogs_yaml_iter_t));
-                        } else if (ogs_yaml_iter_type(&nsi_array) ==
-                            YAML_SEQUENCE_NODE) {
-                            if (!ogs_yaml_iter_next(&nsi_array))
-                                break;
-                            ogs_yaml_iter_recurse(&nsi_array, &nsi_iter);
-                        } else if (ogs_yaml_iter_type(&nsi_array) ==
-                            YAML_SCALAR_NODE) {
-                            break;
-                        } else
-                            ogs_assert_if_reached();
-
-                        while (ogs_yaml_iter_next(&nsi_iter)) {
-                            const char *nsi_key =
-                                ogs_yaml_iter_key(&nsi_iter);
-                            ogs_assert(nsi_key);
-                            if (!strcmp(nsi_key, "uri")) {
-                                uri = ogs_yaml_iter_value(&nsi_iter);
-                            } else if (!strcmp(nsi_key, "s_nssai")) {
-                                ogs_yaml_iter_t s_nssai_iter;
-                                ogs_yaml_iter_recurse(&nsi_iter, &s_nssai_iter);
-
-                                while (ogs_yaml_iter_next(&s_nssai_iter)) {
-                                    const char *s_nssai_key =
-                                        ogs_yaml_iter_key(&s_nssai_iter);
-                                    ogs_assert(s_nssai_key);
-
-                                    if (!strcmp(s_nssai_key, "sst")) {
-                                        sst = ogs_yaml_iter_value(
-                                                &s_nssai_iter);
-                                    } else if (!strcmp(s_nssai_key, "sd")) {
-                                        sd = ogs_yaml_iter_value(&s_nssai_iter);
-                                    } else
-                                        ogs_warn("unknown key `%s`",
-                                                s_nssai_key);
-                                }
-                            } else
-                                ogs_warn("unknown key `%s`", nsi_key);
-                        }
-
-                        if (uri) {
-                            bool rc;
-
-                            OpenAPI_uri_scheme_e scheme =
-                                OpenAPI_uri_scheme_NULL;
-
-                            char *fqdn = NULL;
-                            uint16_t fqdn_port = 0;
-                            ogs_sockaddr_t *addr = NULL, *addr6 = NULL;
-
-                            ogs_sbi_header_t h;
-                            uint16_t port = 0;
-
-                            nssf_nsi_t *nsi = NULL;
-                            char *nrf_id = NULL;
-
-                            rc = ogs_sbi_getaddr_from_uri(
-                                    &scheme, &fqdn, &fqdn_port, &addr, &addr6,
-                                    (char *)uri);
-                            if (rc == false) {
-                                if (!scheme)
-                                    ogs_error("Invalid Scheme in URI[%s]", uri);
-                                else
-                                    ogs_error("Invalid URI[%s]", uri);
-
-                                return OGS_ERROR;
-                            }
-
-                            if (fqdn) {
-                                port = fqdn_port;
-                            } else {
-                                if (addr6) {
-                                    port =
-                                        ogs_sbi_uri_port_from_scheme_and_addr(
-                                            scheme, addr6);
-                                } else if (addr) {
-                                    port =
-                                        ogs_sbi_uri_port_from_scheme_and_addr(
-                                            scheme, addr);
-                                }
-                            }
-
-                            memset(&h, 0, sizeof(h));
-                            h.service.name =
-                                (char *)OGS_SBI_SERVICE_NAME_NNRF_DISC;
-                            h.api.version = (char *)OGS_SBI_API_V1;
-                            h.resource.component[0] =
-                                (char *)OGS_SBI_RESOURCE_NAME_NF_INSTANCES;
-
-                            nrf_id = ogs_uridup(
-                                    scheme, fqdn, addr, addr6, port, &h);
-                            ogs_assert(nrf_id);
-
-                            nsi = nssf_nsi_add(
-                                    nrf_id,
-                                    atoi(sst), ogs_s_nssai_sd_from_string(sd));
-                            ogs_assert(nsi);
-
-                            ogs_free(nrf_id);
-
-                            ogs_free(fqdn);
-                            ogs_freeaddrinfo(addr);
-                            ogs_freeaddrinfo(addr6);
-                        }
-
-                    } while (ogs_yaml_iter_type(&nsi_array) ==
-                            YAML_SEQUENCE_NODE);
                 } else
                     ogs_warn("unknown key `%s`", nssf_key);
             }

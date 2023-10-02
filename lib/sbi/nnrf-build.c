@@ -1624,7 +1624,7 @@ ogs_sbi_request_t *ogs_nnrf_nfm_build_status_subscribe(
         goto end;
     }
 
-    server = ogs_list_first(&ogs_sbi_self()->server_list);
+    server = ogs_sbi_server_first();
     if (!server) {
         ogs_error("No server");
         goto end;

@@ -39,6 +39,7 @@ typedef struct connection_s {
     int num_of_header;
     char **headers;
     struct curl_slist *header_list;
+    struct curl_slist *resolve_list;
 
     char *content;
 
@@ -172,6 +173,8 @@ void ogs_sbi_client_remove(ogs_sbi_client_t *client)
     ogs_debug("ogs_sbi_client_remove()");
     if (client->fqdn)
         ogs_debug("- fqdn [%s:%d]", client->fqdn, client->fqdn_port);
+    if (client->resolve)
+        ogs_debug("- resolve [%s]", client->resolve);
     if (client->addr)
         ogs_debug("- addr [%s:%d]",
                 OGS_ADDR(client->addr, buf), OGS_PORT(client->addr));
@@ -205,6 +208,9 @@ void ogs_sbi_client_remove(ogs_sbi_client_t *client)
 
     if (client->fqdn)
         ogs_free(client->fqdn);
+    if (client->resolve)
+        ogs_free(client->resolve);
+
     if (client->addr)
         ogs_freeaddrinfo(client->addr);
     if (client->addr6)
@@ -498,6 +504,11 @@ static connection_t *connection_add(
 
     curl_easy_setopt(conn->easy, CURLOPT_URL, request->h.uri);
 
+    if (client->resolve) {
+        conn->resolve_list = curl_slist_append(NULL, client->resolve);
+        curl_easy_setopt(conn->easy, CURLOPT_RESOLVE, conn->resolve_list);
+    }
+
     curl_easy_setopt(conn->easy, CURLOPT_PRIVATE, conn);
     curl_easy_setopt(conn->easy, CURLOPT_WRITEFUNCTION, write_cb);
     curl_easy_setopt(conn->easy, CURLOPT_WRITEDATA, conn);
@@ -558,6 +569,8 @@ static void connection_free(connection_t *conn)
         ogs_free(conn->headers);
     }
     curl_slist_free_all(conn->header_list);
+
+    curl_slist_free_all(conn->resolve_list);
 
     if (conn->method)
         ogs_free(conn->method);

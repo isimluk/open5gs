@@ -8,23 +8,30 @@ max:
 
 smf:
     sbi:
-      - address: 127.0.0.4
-        port: 7777
-#    nrf:
-#      - uri: http://127.0.0.10:7777
-    scp:
-      - uri: http://127.0.1.10:7777
+      server:
+        - address: 127.0.0.4
+          port: 7777
+      client:
+#        nrf:
+#          - uri: http://127.0.0.10:7777
+        scp:
+          - uri: http://127.0.0.200:7777
     pfcp:
-      - address: 127.0.0.4
-    upf:
-      - address: 127.0.0.7
+      server:
+        - address: 127.0.0.4
+      client:
+        upf:
+          - address: 127.0.0.7
     gtpc:
-      - address: 127.0.0.4
+      server:
+        - address: 127.0.0.4
     gtpu:
-      - address: 127.0.0.4
+      server:
+        - address: 127.0.0.4
     metrics:
-      - address: 127.0.0.4
-        port: 9090
+      server:
+        - address: 127.0.0.4
+          port: 9090
     session:
       - subnet: 10.45.0.1/16
       - subnet: 2001:db8:cafe::1/48
@@ -178,31 +185,39 @@ smf:
 ################################################################################
 #  o Override SBI address to be advertised to NRF
 #    sbi:
-#      - dev: eth0
-#        advertise: open5gs-smf.svc.local
+#      server:
+#        - dev: eth0
+#          advertise: open5gs-smf.svc.local
 #
 #    sbi:
-#      - address: localhost
-#        advertise:
-#          - 127.0.0.99
-#          - ::1
+#      server:
+#        - address: localhost
+#          advertise:
+#            - 127.0.0.99
+#            - ::1
 #
 ################################################################################
 # SBI Client
 ################################################################################
 #  o Direct communication with NRF interaction
-#    nrf:
-#      - uri: http://127.0.0.10:7777
+#    sbi:
+#      client:
+#        nrf:
+#          - uri: http://127.0.0.10:7777
 #
 #  o Indirect communication with delegated discovery
-#    scp:
-#      - uri: http://127.0.1.10:7777
+#    sbi:
+#      client:
+#        scp:
+#          - uri: http://127.0.0.200:7777
 #
 #  o Indirect communication without delegated discovery
-#    nrf:
-#      - uri: http://127.0.0.10:7777
-#    scp:
-#      - uri: http://127.0.1.10:7777
+#    sbi:
+#      client:
+#        nrf:
+#          - uri: http://127.0.0.10:7777
+#        scp:
+#          - uri: http://127.0.0.200:7777
 #    discovery:
 #      delegated: no
 #
@@ -219,90 +234,92 @@ smf:
 #        client:
 #          scheme: https
 #          cacert: @sysconfdir@/open5gs/tls/ca.crt
-#
-#  o Override default configuration on individual servers and clients
 #    sbi:
-#      - scheme: https
-#        address: smf.localdomain
-#        port: 7777
-#        private_key: @sysconfdir@/open5gs/tls/smf.key
-#        cert: @sysconfdir@/open5gs/tls/smf.crt
-#    nrf:
-#      - uri: https://nrf.localdomain:7777
-#        cacert: @sysconfdir@/open5gs/tls/ca.crt
-#    scp:
-#      - uri: https://scp.localdomain:7777
-#        cacert: @sysconfdir@/open5gs/tls/ca.crt
+#      server:
+#        - address: smf.localdomain
+#      client:
+#        nrf:
+#          - uri: https://nrf.localdomain
 #
 #  o Add client TLS verification
+#    defconfig:
+#      tls:
+#        server:
+#          scheme: https
+#          private_key: @sysconfdir@/open5gs/tls/smf.key
+#          cert: @sysconfdir@/open5gs/tls/smf.crt
+#          verify_client: true
+#          verify_client_cacert: @sysconfdir@/open5gs/tls/ca.crt
+#        client:
+#          scheme: https
+#          cacert: @sysconfdir@/open5gs/tls/ca.crt
+#          client_private_key: @sysconfdir@/open5gs/tls/smf.key
+#          client_cert: @sysconfdir@/open5gs/tls/smf.crt
 #    sbi:
-#      - scheme: https
-#        address: smf.localdomain
-#        port: 7777
-#        private_key: @sysconfdir@/open5gs/tls/smf.key
-#        cert: @sysconfdir@/open5gs/tls/smf.crt
-#        verify_client: true
-#        verify_client_cacert: @sysconfdir@/open5gs/tls/ca.crt
-#    nrf:
-#      - uri: https://nrf.localdomain:7777
-#        cacert: @sysconfdir@/open5gs/tls/ca.crt
-#        client_private_key: @sysconfdir@/open5gs/tls/smf.key
-#        client_cert: @sysconfdir@/open5gs/tls/smf.crt
-#    scp:
-#      - uri: https://scp.localdomain:7777
-#        cacert: @sysconfdir@/open5gs/tls/ca.crt
-#        client_private_key: @sysconfdir@/open5gs/tls/smf.key
-#        client_cert: @sysconfdir@/open5gs/tls/smf.crt
+#      server:
+#        - address: smf.localdomain
+#      client:
+#        nrf:
+#          - uri: https://nrf.localdomain
 #
 ################################################################################
 # PFCP Server
 ################################################################################
 #  o Override PFCP address to be advertised to UPF in PFCP association
 #    pfcp:
-#      - dev: eth0
-#        advertise: open5gs-smf.svc.local
+#      server:
+#        - dev: eth0
+#          advertise: open5gs-smf.svc.local
 #
 ################################################################################
 # PFCP Client
 ################################################################################
 #  o UPF selection by eNodeB TAC
 #   (either single TAC or multiple TACs, DECIMAL representation)
-#    upf:
-#      - address: 127.0.0.7
-#        tac: 1
-#      - address: 127.0.0.12
-#        tac: [3,5,8]
+#    pfcp:
+#      client:
+#        upf:
+#          - address: 127.0.0.7
+#            tac: 1
+#          - address: 127.0.0.12
+#            tac: [3,5,8]
 #
 #  o UPF selection by UE's DNN/APN (either single DNN/APN or multiple DNNs/APNs)
-#    upf:
-#      - address: 127.0.0.7
-#        dnn: ims
-#      - address: 127.0.0.12
-#        dnn: [internet, web]
+#    pfcp:
+#      client:
+#        upf:
+#          - address: 127.0.0.7
+#            dnn: ims
+#          - address: 127.0.0.12
+#            dnn: [internet, web]
 #
 #  o UPF selection by CellID(e_cell_id: 28bit, nr_cell_id: 36bit)
 #    (either single enb_id or multiple enb_ids, HEX representation)
-#    upf:
-#      - address: 127.0.0.7
-#        e_cell_id: 463
-#      - address: 127.0.0.12
-#        nr_cell_id: [123456789, 9413]
+#    pfcp:
+#      client:
+#        upf:
+#          - address: 127.0.0.7
+#            e_cell_id: 463
+#          - address: 127.0.0.12
+#            nr_cell_id: [123456789, 9413]
 #
 ################################################################################
 # GTP-C Server
 ################################################################################
 #  o Listen on IPv4 and IPv6
 #    gtpc:
-#      - address: 127.0.0.4
-#      - address: fd69:f21d:873c:fa::3
+#      server:
+#        - address: 127.0.0.4
+#        - address: fd69:f21d:873c:fa::3
 #
 ################################################################################
 # GTP-U Server
 ################################################################################
 #  o Listen on IPv4 and IPv6
 #    gtpu:
-#      - address: 127.0.0.4
-#      - address: ::1
+#      server:
+#        - address: 127.0.0.4
+#        - address: ::1
 #
 ################################################################################
 # 3GPP Specification

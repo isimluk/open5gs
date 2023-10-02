@@ -36,7 +36,7 @@ extern int __sepp_log_domain;
 #define OGS_LOG_DOMAIN __sepp_log_domain
 
 typedef struct sepp_context_s {
-    char *fqdn;
+    char *sender;
 
     struct {
         bool tls;
@@ -55,7 +55,7 @@ typedef struct sepp_node_s sepp_node_t;
 typedef struct sepp_node_s {
     ogs_lnode_t lnode;
 
-    char *fqdn;
+    char *receiver;
     OpenAPI_security_capability_e negotiated_security_scheme;
     bool target_apiroot_supported;
 
@@ -72,6 +72,9 @@ typedef struct sepp_node_s {
                                                to establish peer node */
 
     void *client;                           /* only used in CLIENT */
+    struct {
+        void *client;                       /* For n32 forwarding interface */
+    } n32f;
 } sepp_node_t;
 
 typedef struct sepp_assoc_s sepp_assoc_t;
@@ -97,10 +100,10 @@ sepp_context_t *sepp_self(void);
 
 int sepp_context_parse_config(void);
 
-sepp_node_t *sepp_node_add(char *fqdn);
+sepp_node_t *sepp_node_add(char *receiver);
 void sepp_node_remove(sepp_node_t *sepp_node);
 void sepp_node_remove_all(void);
-sepp_node_t *sepp_node_find_by_fqdn(char *fqdn);
+sepp_node_t *sepp_node_find_by_receiver(char *receiver);
 sepp_node_t *sepp_node_find_by_plmn_id(uint16_t mcc, uint16_t mnc);
 
 sepp_assoc_t *sepp_assoc_add(ogs_sbi_stream_t *stream);

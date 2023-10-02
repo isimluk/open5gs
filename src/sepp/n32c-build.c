@@ -34,6 +34,7 @@ ogs_sbi_request_t *sepp_n32c_handshake_build_security_capability_request(
     int i;
     OpenAPI_lnode_t *node = NULL;
 
+    ogs_assert(sepp_self()->sender);
     ogs_assert(sepp_node);
 
     memset(&message, 0, sizeof(message));
@@ -44,7 +45,7 @@ ogs_sbi_request_t *sepp_n32c_handshake_build_security_capability_request(
         (char *)OGS_SBI_RESOURCE_NAME_EXCHANGE_CAPABILITY;
 
     memset(&SecNegotiateReqData, 0, sizeof(SecNegotiateReqData));
-    SecNegotiateReqData.sender = sepp_self()->fqdn;
+    SecNegotiateReqData.sender = sepp_self()->sender;
 
     SupportedSecCapabilityList = OpenAPI_list_create();
     if (!SupportedSecCapabilityList) {

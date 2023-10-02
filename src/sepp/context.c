@@ -62,8 +62,8 @@ void sepp_context_final(void)
     ogs_pool_final(&sepp_node_pool);
     ogs_pool_final(&sepp_assoc_pool);
 
-    if (self.fqdn)
-        ogs_free(self.fqdn);
+    if (self.sender)
+        ogs_free(self.sender);
 
     context_initialized = 0;
 }
@@ -80,32 +80,6 @@ static int sepp_context_prepare(void)
     ogs_sbi_nf_instance_t *nf_instance = NULL;
     ogs_sbi_nf_info_t *nf_info = NULL;
     ogs_sbi_sepp_info_t *sepp_info = NULL;
-    char *hostname = NULL;
-
-    /*********************************************************************
-     * SEPP FQDN Configuration
-     *********************************************************************/
-    hostname = NULL;
-    ogs_list_for_each(&ogs_sbi_self()->server_list, server) {
-        ogs_sockaddr_t *advertise = NULL;
-
-        advertise = server->advertise;
-        if (!advertise)
-            advertise = server->node.addr;
-        ogs_assert(advertise);
-
-        /* First FQDN is selected */
-        if (!hostname) {
-            hostname = ogs_gethostname(advertise);
-            if (hostname)
-                continue;
-        }
-    }
-
-    if (hostname) {
-        self.fqdn = ogs_strdup(hostname);
-        ogs_assert(self.fqdn);
-    }
 
     /*********************************************************************
      * SEPP Port Configuration
@@ -122,7 +96,8 @@ static int sepp_context_prepare(void)
 
     sepp_info = &nf_info->sepp;
 
-    ogs_list_for_each(&ogs_sbi_self()->server_list, server) {
+    for (server = ogs_sbi_server_first();
+            server; server = ogs_sbi_server_next(server)) {
         ogs_sockaddr_t *advertise = NULL;
 
         advertise = server->advertise;
@@ -161,6 +136,12 @@ static int sepp_context_validation(void)
                 ogs_app()->file);
         return OGS_ERROR;
     }
+
+    if (!sepp_self()->sender) {
+        ogs_error("No n32.server.sender");
+        return OGS_ERROR;
+    }
+
     return OGS_OK;
 }
 
@@ -188,8 +169,223 @@ int sepp_context_parse_config(void)
                 ogs_assert(sepp_key);
                 if (!strcmp(sepp_key, "defconfig")) {
                     /* handle config in sbi library */
-                } else if (!strcmp(sepp_key, "sbi")) {
-                    /* handle config in sbi library */
+                } else if (!strcmp(sepp_key, "n32")) {
+                    ogs_yaml_iter_t sbi_iter;
+                    ogs_yaml_iter_recurse(&sepp_iter, &sbi_iter);
+                    while (ogs_yaml_iter_next(&sbi_iter)) {
+                        const char *sbi_key = ogs_yaml_iter_key(&sbi_iter);
+                        ogs_assert(sbi_key);
+                        if (!strcmp(sbi_key, "server")) {
+                            const char *sender = NULL;
+                            ogs_yaml_iter_t server_iter, server_array;
+                            ogs_yaml_iter_recurse(&sbi_iter, &server_array);
+                            do {
+                                if (ogs_yaml_iter_type(&server_array) ==
+                                        YAML_MAPPING_NODE) {
+                                    memcpy(&server_iter, &server_array,
+                                            sizeof(ogs_yaml_iter_t));
+                                } else if (ogs_yaml_iter_type(&server_array) ==
+                                        YAML_SEQUENCE_NODE) {
+                                    if (!ogs_yaml_iter_next(&server_array))
+                                        break;
+                                    ogs_yaml_iter_recurse(
+                                            &server_array, &server_iter);
+                                } else if (ogs_yaml_iter_type(&server_array) ==
+                                        YAML_SCALAR_NODE) {
+                                    break;
+                                } else
+                                    ogs_assert_if_reached();
+
+                                while (ogs_yaml_iter_next(&server_iter)) {
+                                    const char *server_key =
+                                        ogs_yaml_iter_key(&server_iter);
+                                    ogs_assert(server_key);
+                                    if (!strcmp(server_key, "sender")) {
+                                        sender =
+                                            ogs_yaml_iter_value(&server_iter);
+                                    }
+                                }
+                            } while (ogs_yaml_iter_type(&server_array) ==
+                                    YAML_SEQUENCE_NODE);
+
+                            if (!sender) {
+                                ogs_error("No n32.server.sender");
+                                return OGS_ERROR;
+                            }
+
+                            if (self.sender)
+                                ogs_free(self.sender);
+                            self.sender = ogs_strdup(sender);
+                            if (!self.sender) {
+                                ogs_error("No memory for sender");
+                                return OGS_ERROR;
+                            }
+
+                            rv = ogs_sbi_context_parse_server_config(
+                                    &sbi_iter, OGS_SBI_INTERFACE_NAME_SEPP);
+                            if (rv != OGS_OK) {
+                                ogs_error("ogs_sbi_context_parse_server_"
+                                        "config() failed");
+                                return rv;
+                            }
+
+                        } else if (!strcmp(sbi_key, "client")) {
+                            ogs_yaml_iter_t client_iter;
+                            ogs_yaml_iter_recurse(&sbi_iter, &client_iter);
+                            while (ogs_yaml_iter_next(&client_iter)) {
+                                const char *client_key =
+                                    ogs_yaml_iter_key(&client_iter);
+                                ogs_assert(client_key);
+                                if (!strcmp(client_key, "sepp")) {
+                                    ogs_yaml_iter_t peer_array, peer_iter;
+                                    ogs_yaml_iter_t saved_iter;
+                                    ogs_yaml_iter_recurse(
+                                            &client_iter, &peer_array);
+                                    do {
+                                        sepp_node_t *sepp_node = NULL;
+                                        ogs_sbi_client_t *client = NULL;
+                                        const char *receiver = NULL;
+                                        const char *mnc = NULL, *mcc = NULL;
+
+                                        if (ogs_yaml_iter_type(&peer_array) ==
+                                                YAML_MAPPING_NODE) {
+                                            memcpy(&peer_iter, &peer_array,
+                                                    sizeof(ogs_yaml_iter_t));
+                                        } else if (ogs_yaml_iter_type(
+                                                    &peer_array) ==
+                                            YAML_SEQUENCE_NODE) {
+                                            if (!ogs_yaml_iter_next(&peer_array))
+                                                break;
+                                            ogs_yaml_iter_recurse(
+                                                    &peer_array, &peer_iter);
+                                        } else if (ogs_yaml_iter_type(
+                                                    &peer_array) ==
+                                                YAML_SCALAR_NODE) {
+                                            break;
+                                        } else
+                                            ogs_assert_if_reached();
+
+                                        memcpy(&saved_iter, &peer_iter,
+                                                sizeof(saved_iter));
+
+                                        while (ogs_yaml_iter_next(&peer_iter)) {
+                                            const char *peer_key =
+                                                ogs_yaml_iter_key(&peer_iter);
+                                            ogs_assert(peer_key);
+                                            if (!strcmp(peer_key, "receiver")) {
+                                                receiver = ogs_yaml_iter_value(
+                                                        &peer_iter);
+                                            } else if (!strcmp(peer_key,
+                                                        "target_plmn_id")) {
+                                                ogs_yaml_iter_t plmn_id_iter;
+
+                                                ogs_yaml_iter_recurse(
+                                                        &peer_iter,
+                                                        &plmn_id_iter);
+                                                while (ogs_yaml_iter_next(
+                                                            &plmn_id_iter)) {
+                                                    const char *plmn_id_key =
+                                                        ogs_yaml_iter_key(
+                                                                &plmn_id_iter);
+                                                    ogs_assert(plmn_id_key);
+                                                    if (!strcmp(plmn_id_key,
+                                                                "mcc")) {
+                                                        mcc =
+                                                            ogs_yaml_iter_value(
+                                                                &plmn_id_iter);
+                                                    } else if (!strcmp(
+                                                                plmn_id_key,
+                                                                "mnc")) {
+                                                        mnc =
+                                                            ogs_yaml_iter_value(
+                                                                &plmn_id_iter);
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        if (!receiver) {
+                                            ogs_error(
+                                                "No n32c.client.sepp.receiver");
+                                            return OGS_ERROR;
+                                        }
+
+                                        sepp_node =
+                                            sepp_node_find_by_receiver(
+                                                    (char *)receiver);
+                                        if (sepp_node) {
+                                            ogs_error("SEPP duplicated "
+                                                    "[receiver:%s]",
+                                                    receiver);
+                                            return OGS_ERROR;
+                                        }
+
+                                        sepp_node = sepp_node_add(
+                                                (char *)receiver);
+                                        ogs_assert(sepp_node);
+
+                                        if (mcc && mnc) {
+                                            ogs_plmn_id_build(
+                                                &sepp_node->target_plmn_id,
+                                                atoi(mcc), atoi(mnc),
+                                                strlen(mnc));
+                                            sepp_node->
+                                                target_plmn_id_presence =
+                                                true;
+                                        }
+
+                                        memcpy(&peer_iter, &saved_iter,
+                                                sizeof(peer_iter));
+
+                                        client =
+                                            ogs_sbi_context_parse_client_config(
+                                                &peer_iter);
+
+                                        if (!client) {
+                                            ogs_error("ogs_sbi_context_parse_"
+                                                    "client_config() failed");
+                                            sepp_node_remove(sepp_node);
+                                            return OGS_ERROR;
+                                        }
+
+                                        OGS_SBI_SETUP_CLIENT(
+                                                sepp_node, client);
+
+                                        memcpy(&peer_iter, &saved_iter,
+                                                sizeof(peer_iter));
+
+                                        while (ogs_yaml_iter_next(&peer_iter)) {
+                                            const char *peer_key =
+                                                ogs_yaml_iter_key(&peer_iter);
+                                            ogs_assert(peer_key);
+                                            if (!strcmp(peer_key,
+                                                OGS_SBI_INTERFACE_NAME_N32F)) {
+                                                ogs_yaml_iter_t n32f_iter;
+                                                ogs_yaml_iter_recurse(
+                                                        &peer_iter, &n32f_iter);
+                                                client =
+                                                    ogs_sbi_context_parse_client_config(
+                                                            &n32f_iter);
+                                                if (!client) {
+                                                    ogs_error(
+                                                        "ogs_sbi_context_parse_"
+                                                        "client_config() "
+                                                        "failed");
+                                                    sepp_node_remove(sepp_node);
+                                                    return OGS_ERROR;
+                                                }
+                                                OGS_SBI_SETUP_CLIENT(
+                                                    &sepp_node->n32f, client);
+                                            }
+                                        }
+
+                                    } while (ogs_yaml_iter_type(&peer_array) ==
+                                            YAML_SEQUENCE_NODE);
+                                }
+                            }
+                        } else
+                            ogs_warn("unknown key `%s`", sbi_key);
+                    }
                 } else if (!strcmp(sepp_key, "nrf")) {
                     /* handle config in sbi library */
                 } else if (!strcmp(sepp_key, "scp")) {
@@ -198,160 +394,6 @@ int sepp_context_parse_config(void)
                     /* handle config in sbi library */
                 } else if (!strcmp(sepp_key, "discovery")) {
                     /* handle config in sbi library */
-                } else if (!strcmp(sepp_key, "sepp")) {
-                    ogs_yaml_iter_t peer_array, peer_iter;
-                    ogs_yaml_iter_recurse(&sepp_iter, &peer_array);
-                    do {
-                        sepp_node_t *sepp_node = NULL;
-                        ogs_sbi_client_t *client = NULL;
-
-                        const char *uri = NULL;
-
-                        bool insecure_skip_verify = false;
-                        const char *cacert = NULL;
-
-                        const char *client_private_key = NULL;
-                        const char *client_cert = NULL;
-
-                        const char *mnc = NULL, *mcc = NULL;
-
-                        if (ogs_yaml_iter_type(&peer_array) ==
-                                YAML_MAPPING_NODE) {
-                            memcpy(&peer_iter, &peer_array,
-                                    sizeof(ogs_yaml_iter_t));
-                        } else if (ogs_yaml_iter_type(&peer_array) ==
-                            YAML_SEQUENCE_NODE) {
-                            if (!ogs_yaml_iter_next(&peer_array))
-                                break;
-                            ogs_yaml_iter_recurse(&peer_array, &peer_iter);
-                        } else if (ogs_yaml_iter_type(&peer_array) ==
-                                YAML_SCALAR_NODE) {
-                            break;
-                        } else
-                            ogs_assert_if_reached();
-
-                        while (ogs_yaml_iter_next(&peer_iter)) {
-                            const char *peer_key =
-                                ogs_yaml_iter_key(&peer_iter);
-                            ogs_assert(peer_key);
-                            if (!strcmp(peer_key, "uri")) {
-                                uri = ogs_yaml_iter_value(&peer_iter);
-                            } else if (!strcmp(peer_key,
-                                        "insecure_skip_verify")) {
-                                insecure_skip_verify =
-                                    ogs_yaml_iter_bool(&peer_iter);
-                            } else if (!strcmp(peer_key, "cacert")) {
-                                cacert = ogs_yaml_iter_value(&peer_iter);
-                            } else if (!strcmp(peer_key,
-                                        "client_private_key")) {
-                                client_private_key =
-                                    ogs_yaml_iter_value(&peer_iter);
-                            } else if (!strcmp(peer_key, "client_cert")) {
-                                client_cert = ogs_yaml_iter_value(&peer_iter);
-                            } else if (!strcmp(peer_key, "target_plmn_id")) {
-                                ogs_yaml_iter_t plmn_id_iter;
-
-                                ogs_yaml_iter_recurse(&peer_iter,
-                                        &plmn_id_iter);
-                                while (ogs_yaml_iter_next(&plmn_id_iter)) {
-                                    const char *plmn_id_key =
-                                        ogs_yaml_iter_key(&plmn_id_iter);
-                                    ogs_assert(plmn_id_key);
-                                    if (!strcmp(plmn_id_key, "mcc")) {
-                                        mcc = ogs_yaml_iter_value(
-                                                &plmn_id_iter);
-                                    } else if (!strcmp(plmn_id_key, "mnc")) {
-                                        mnc = ogs_yaml_iter_value(
-                                                &plmn_id_iter);
-                                    }
-                                }
-                            } else
-                                ogs_warn("unknown key `%s`", peer_key);
-                        }
-
-                        if (uri) {
-                            bool rc;
-                            OpenAPI_uri_scheme_e scheme =
-                                OpenAPI_uri_scheme_NULL;
-                            char *fqdn = NULL;
-                            uint16_t fqdn_port = 0;
-                            ogs_sockaddr_t *addr = NULL, *addr6 = NULL;
-
-                            rc = ogs_sbi_getaddr_from_uri(
-                                    &scheme, &fqdn, &fqdn_port, &addr, &addr6,
-                                    (char *)uri);
-                            if (rc == false) {
-                                if (!scheme)
-                                    ogs_error("Invalid Scheme in URI[%s]", uri);
-                                else
-                                    ogs_error("Invalid URI[%s]", uri);
-
-                                return OGS_ERROR;
-                            }
-                            if (!fqdn) {
-                                ogs_error("No FQDN in URI[%s]", uri);
-                                ogs_freeaddrinfo(addr);
-                                ogs_freeaddrinfo(addr6);
-                                return OGS_ERROR;
-                            }
-
-                            sepp_node = sepp_node_add((char *)fqdn);
-                            ogs_assert(sepp_node);
-
-                            client = ogs_sbi_client_add(
-                                    scheme, fqdn, fqdn_port, NULL, NULL);
-                            ogs_assert(client);
-                            OGS_SBI_SETUP_CLIENT(sepp_node, client);
-
-                            if (insecure_skip_verify == true)
-                                client->insecure_skip_verify = true;
-
-                            if (cacert) {
-                                if (client->cacert)
-                                    ogs_free(client->cacert);
-                                client->cacert = ogs_strdup(cacert);
-                                ogs_assert(client->cacert);
-                            }
-
-                            if (client_private_key) {
-                                if (client->private_key)
-                                    ogs_free(client->private_key);
-                                client->private_key =
-                                    ogs_strdup(client_private_key);
-                                ogs_assert(client->private_key);
-                            }
-
-                            if (client_cert) {
-                                if (client->cert)
-                                    ogs_free(client->cert);
-                                client->cert = ogs_strdup(client_cert);
-                                ogs_assert(client->cert);
-                            }
-
-                            if ((!client_private_key && client_cert) ||
-                                (client_private_key && !client_cert)) {
-                                ogs_error("Either the private key or "
-                                        "certificate is missing.");
-                                return OGS_ERROR;
-                            }
-
-
-                            if (mcc && mnc) {
-                                ogs_plmn_id_build(
-                                    &sepp_node->target_plmn_id,
-                                    atoi(mcc), atoi(mnc), strlen(mnc));
-                                sepp_node->target_plmn_id_presence = true;
-                            }
-
-                            ogs_free(fqdn);
-                            ogs_freeaddrinfo(addr);
-                            ogs_freeaddrinfo(addr6);
-                        } else {
-                            ogs_error("Invalid Mandatory [URI:%s]",
-                                        uri ? uri : "NULL");
-                        }
-                    } while (ogs_yaml_iter_type(&peer_array) ==
-                            YAML_SEQUENCE_NODE);
                 } else if (!strcmp(sepp_key, "info")) {
                     ogs_sbi_nf_instance_t *nf_instance = NULL;
                     ogs_sbi_nf_info_t *nf_info = NULL;
@@ -401,8 +443,7 @@ int sepp_context_parse_config(void)
                         } else
                             ogs_warn("unknown key `%s`", info_key);
                     }
-                } else
-                    ogs_warn("unknown key `%s`", sepp_key);
+                }
             }
         }
     }
@@ -413,11 +454,11 @@ int sepp_context_parse_config(void)
     return OGS_OK;
 }
 
-sepp_node_t *sepp_node_add(char *fqdn)
+sepp_node_t *sepp_node_add(char *receiver)
 {
     sepp_node_t *sepp_node = NULL;
 
-    ogs_assert(fqdn);
+    ogs_assert(receiver);
 
     ogs_pool_alloc(&sepp_node_pool, &sepp_node);
     if (!sepp_node) {
@@ -427,8 +468,8 @@ sepp_node_t *sepp_node_add(char *fqdn)
     }
     memset(sepp_node, 0, sizeof *sepp_node);
 
-    sepp_node->fqdn = ogs_strdup(fqdn);
-    ogs_assert(sepp_node->fqdn);
+    sepp_node->receiver = ogs_strdup(receiver);
+    ogs_assert(sepp_node->receiver);
 
     ogs_list_add(&self.peer_list, sepp_node);
 
@@ -443,9 +484,11 @@ void sepp_node_remove(sepp_node_t *sepp_node)
 
     if (sepp_node->client)
         ogs_sbi_client_remove(sepp_node->client);
+    if (sepp_node->n32f.client)
+        ogs_sbi_client_remove(sepp_node->n32f.client);
 
-    if (sepp_node->fqdn)
-        ogs_free(sepp_node->fqdn);
+    if (sepp_node->receiver)
+        ogs_free(sepp_node->receiver);
 
     ogs_pool_free(&sepp_node_pool, sepp_node);
 }
@@ -458,15 +501,15 @@ void sepp_node_remove_all(void)
         sepp_node_remove(sepp_node);
 }
 
-sepp_node_t *sepp_node_find_by_fqdn(char *fqdn)
+sepp_node_t *sepp_node_find_by_receiver(char *receiver)
 {
     sepp_node_t *sepp_node = NULL;
 
-    ogs_assert(fqdn);
+    ogs_assert(receiver);
 
     ogs_list_for_each(&self.peer_list, sepp_node) {
-        ogs_assert(sepp_node->fqdn);
-        if (strcmp(sepp_node->fqdn, fqdn) == 0) {
+        ogs_assert(sepp_node->receiver);
+        if (strcmp(sepp_node->receiver, receiver) == 0) {
             return sepp_node;
         }
     }
@@ -483,7 +526,7 @@ sepp_node_t *sepp_node_find_by_plmn_id(uint16_t mcc, uint16_t mnc)
 
     ogs_list_for_each(&self.peer_list, sepp_node) {
         int i;
-        ogs_assert(sepp_node->fqdn);
+        ogs_assert(sepp_node->receiver);
         for (i = 0; i < sepp_node->num_of_plmn_id; i++) {
             if (mcc == ogs_plmn_id_mcc(&sepp_node->plmn_id[i]) &&
                 mnc == ogs_plmn_id_mnc(&sepp_node->plmn_id[i])) {

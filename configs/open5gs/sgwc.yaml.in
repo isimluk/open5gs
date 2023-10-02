@@ -8,50 +8,61 @@ max:
 
 sgwc:
     gtpc:
-      - address: 127.0.0.3
+      server:
+        - address: 127.0.0.3
     pfcp:
-      - address: 127.0.0.3
-    sgwu:
-      - address: 127.0.0.6
+      server:
+        - address: 127.0.0.3
+      client:
+        sgwu:
+          - address: 127.0.0.6
 
 ################################################################################
 # GTP-C Server
 ################################################################################
 #  o Listen on IPv4 and IPv6
 #    gtpc:
-#      - address: 127.0.0.3
-#      - address: fd69:f21d:873c:fa::2
+#      server:
+#        - address: 127.0.0.3
+#        - address: fd69:f21d:873c:fa::2
 #
 ################################################################################
 # PFCP Server
 ################################################################################
 #  o Override PFCP address to be advertised to SGW-U in PFCP association
 #    pfcp:
-#      - dev: eth0
-#        advertise: open5gs-sgwc.svc.local
+#      server:
+#        - dev: eth0
+#          advertise: open5gs-sgwc.svc.local
 #
 ################################################################################
 # PFCP Client
 ################################################################################
 #  o SGWU selection by eNodeB TAC
 #   (either single TAC or multiple TACs, DECIMAL representation)
-#    sgwu:
-#      - address: 127.0.0.6
-#        tac: 1
-#      - address: 127.0.0.12
-#        tac: [3,5,8]
+#    pfcp:
+#      client:
+#        sgwu:
+#          - address: 127.0.0.6
+#            tac: 1
+#          - address: 127.0.0.12
+#            tac: [3,5,8]
 #
 #  o SGWU selection by UE's APN (either single APN or multiple APNs)
-#    sgwu:
-#      - address: 127.0.0.6
-#        apn: ims
-#      - address: 127.0.0.12
-#        apn: [internet, web]
+#    pfcp:
+#      client:
+#        sgwu:
+#          - address: 127.0.0.6
+#            apn: ims
+#          - address: 127.0.0.12
+#            apn: [internet, web]
 #
 #  o SGWU selection by CellID(e_cell_id: 28bit)
 #   (either single e_cell_id or multiple e_cell_id, HEX representation)
-#    sgwu:
-#      - address: 127.0.0.6
-#        e_cell_id: 463
-#      - address: 127.0.0.12
-#        e_cell_id: [123456789, 9413]
+#    pfcp:
+#      client:
+#        sgwu:
+#          - address: 127.0.0.6
+#            e_cell_id: 463
+#          - address: 127.0.0.12
+#            e_cell_id: [123456789, 9413]

@@ -43,6 +43,7 @@ void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e)
 
     ogs_sbi_stream_t *stream = NULL;
     ogs_sbi_request_t *request = NULL;
+    ogs_sbi_server_t *server = NULL;
 
     ogs_sbi_nf_instance_t *nf_instance = NULL;
     ogs_sbi_subscription_data_t *subscription_data = NULL;
@@ -65,6 +66,8 @@ void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e)
         ogs_assert(request);
         stream = e->h.sbi.data;
         ogs_assert(stream);
+        server = ogs_sbi_server_from_stream(stream);
+        ogs_assert(server);
 
         rv = ogs_sbi_parse_request(&message, request);
         if (rv != OGS_OK) {
@@ -89,6 +92,12 @@ void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e)
 
         SWITCH(message.h.service.name)
         CASE(OGS_SBI_SERVICE_NAME_NNRF_NFM)
+            if (server->interface &&
+                strcmp(server->interface, OGS_SBI_INTERFACE_NAME_SEPP) == 0) {
+                ogs_error("[DROP] Peer SEPP is using the wrong interface[%s]",
+                        server->interface);
+                break;
+            }
 
             SWITCH(message.h.resource.component[0])
             CASE(OGS_SBI_RESOURCE_NAME_NF_STATUS_NOTIFY)
@@ -118,13 +127,20 @@ void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e)
             break;
 
         CASE(OGS_SBI_SERVICE_NAME_N32C_HANDSHAKE)
+            if (!server->interface &&
+                ogs_sbi_server_first_by_interface(
+                    OGS_SBI_INTERFACE_NAME_SEPP)) {
+                ogs_error("[DROP] Peer SEPP is using the wrong interface[sbi]");
+                break;
+            }
+
             SWITCH(message.h.resource.component[0])
             CASE(OGS_SBI_RESOURCE_NAME_EXCHANGE_CAPABILITY)
                 SWITCH(message.h.method)
                 CASE(OGS_SBI_HTTP_METHOD_POST)
                     if (message.SecNegotiateReqData &&
                         message.SecNegotiateReqData->sender) {
-                        sepp_node = sepp_node_find_by_fqdn(
+                        sepp_node = sepp_node_find_by_receiver(
                                 message.SecNegotiateReqData->sender);
                         if (!sepp_node) {
                             sepp_node = sepp_node_add(
@@ -170,7 +186,7 @@ void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e)
             e->h.sbi.message = &message;
             ogs_fsm_dispatch(&sepp_node->sm, e);
             if (OGS_FSM_CHECK(&sepp_node->sm, sepp_handshake_state_exception))
-                ogs_error("[%s] State machine exception", sepp_node->fqdn);
+                ogs_error("[%s] State machine exception", sepp_node->receiver);
             break;
 
         DEFAULT
@@ -347,7 +363,7 @@ void sepp_state_operational(ogs_fsm_t *s, sepp_event_t *e)
             ogs_fsm_dispatch(&sepp_node->sm, e);
             if (OGS_FSM_CHECK(&sepp_node->sm, sepp_handshake_state_exception))
                 ogs_error("[%s] State machine exception [%d]",
-                        sepp_node->fqdn, e->h.timer_id);
+                        sepp_node->receiver, e->h.timer_id);
             break;
 
         case OGS_TIMER_NF_INSTANCE_REGISTRATION_INTERVAL:

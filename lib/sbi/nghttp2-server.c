@@ -353,11 +353,12 @@ static int server_start(ogs_sbi_server_t *server,
             }
             SSL_CTX_set_client_CA_list(server->ssl_ctx, cert_names);
 
-            SSL_CTX_set_verify(
-                    server->ssl_ctx,
-                    SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE |
-                    SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
-                    verify_callback);
+            if (server->verify_client)
+                SSL_CTX_set_verify(
+                        server->ssl_ctx,
+                        SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE |
+                        SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
+                        verify_callback);
 
             context = ogs_sbi_server_id_context(server);
             if (!context) {
@@ -405,11 +406,13 @@ static int server_start(ogs_sbi_server_t *server,
 
     hostname = ogs_gethostname(addr);
     if (hostname)
-        ogs_info("nghttp2_server() [%s://%s]:%d",
+        ogs_info("nghttp2_server(%s) [%s://%s]:%d",
+                server->interface ? server->interface : "",
                 server->ssl_ctx ? "https" : "http",
                 hostname, OGS_PORT(addr));
     else
-        ogs_info("nghttp2_server() [%s://%s]:%d",
+        ogs_info("nghttp2_server(%s) [%s://%s]:%d",
+                server->interface ? server->interface : "",
                 server->ssl_ctx ? "https" : "http",
                 OGS_ADDR(addr, buf), OGS_PORT(addr));
 

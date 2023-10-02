@@ -51,6 +51,8 @@ tls_security = '''
     sepp1.crt
     sepp2.key
     sepp2.crt
+    sepp3.key
+    sepp3.crt
 '''.split()
 
 foreach file : tls_security

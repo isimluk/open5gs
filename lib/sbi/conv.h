@@ -57,6 +57,11 @@ bool ogs_sbi_getaddr_from_uri(
         char *uri);
 bool ogs_sbi_getpath_from_uri(char **path, char *uri);
 
+char *ogs_sbi_client_resolve(
+        OpenAPI_uri_scheme_e scheme,
+        char *fqdn, uint16_t fqdn_port,
+        const char **resolve, int num_of_resolve);
+
 #define OGS_SBI_BITRATE_BPS     0
 #define OGS_SBI_BITRATE_KBPS    1
 #define OGS_SBI_BITRATE_MBPS    2

@@ -8,21 +8,38 @@ max:
 
 nssf:
     sbi:
-      - address: 127.0.0.14
-        port: 7777
-#    nrf:
-#      - uri: http://127.0.0.10:7777
-    scp:
-      - uri: http://127.0.1.10:7777
-    nsi:
-      - uri: http://127.0.0.10:7777
-        s_nssai:
-          sst: 1
+      server:
+        - address: 127.0.0.14
+          port: 7777
+      client:
+#        nrf:
+#          - uri: http://127.0.0.10:7777
+        scp:
+          - uri: http://127.0.0.200:7777
+        nsi:
+          - uri: http://127.0.0.10:7777
+            s_nssai:
+              sst: 1
 ################################################################################
-# Network Slice Instance(NSI)
+# SBI Server
 ################################################################################
+#  o Override SBI address to be advertised to NRF
+#    sbi:
+#      server:
+#        - dev: eth0
+#          advertise: open5gs-nssf.svc.local
 #
-#  o Three NSI
+#    sbi:
+#      server:
+#        - address: localhost
+#          advertise:
+#            - 127.0.0.99
+#            - ::1
+#
+################################################################################
+# SBI Client
+################################################################################
+#  o Network Slice Instance(NSI)
 #   1. NRF[http://::1:7777/nnrf-nfm/v1/nf-instances]
 #      S-NSSAI[SST:1]
 #   2. NRF[http://127.0.0.19:7777/nnrf-nfm/v1/nf-instances]
@@ -30,49 +47,40 @@ nssf:
 #   3. NRF[http://127.0.0.10:7777/nnrf-nfm/v1/nf-instances]
 #      NSSAI[SST:1, SD:009000]
 #
-#    nsi:
-#      - uri: http://[::1]:7777
-#        s_nssai:
-#          sst: 1
-#      - uri: http://127.0.0.19:7777
-#        s_nssai:
-#          sst: 1
-#          sd: 000080
-#      - uri: http://127.0.0.10:7777
-#        s_nssai:
-#          sst: 1
-#          sd: 009000
-#
-################################################################################
-# SBI Server
-################################################################################
-#  o Override SBI address to be advertised to NRF
 #    sbi:
-#      - dev: eth0
-#        advertise: open5gs-nssf.svc.local
+#      client:
+#        nsi:
+#          - uri: http://[::1]:7777
+#            s_nssai:
+#              sst: 1
+#          - uri: http://127.0.0.19:7777
+#            s_nssai:
+#              sst: 1
+#              sd: 000080
+#          - uri: http://127.0.0.10:7777
+#            s_nssai:
+#              sst: 1
+#              sd: 009000
 #
-#    sbi:
-#      - address: localhost
-#        advertise:
-#          - 127.0.0.99
-#          - ::1
-#
-################################################################################
-# SBI Client
-################################################################################
 #  o Direct communication with NRF interaction
-#    nrf:
-#      - uri: http://127.0.0.10:7777
+#    sbi:
+#      client:
+#        nrf:
+#          - uri: http://127.0.0.10:7777
 #
 #  o Indirect communication with delegated discovery
-#    scp:
-#      - uri: http://127.0.1.10:7777
+#    sbi:
+#      client:
+#        scp:
+#          - uri: http://127.0.0.200:7777
 #
 #  o Indirect communication without delegated discovery
-#    nrf:
-#      - uri: http://127.0.0.10:7777
-#    scp:
-#      - uri: http://127.0.1.10:7777
+#    sbi:
+#      client:
+#        nrf:
+#          - uri: http://127.0.0.10:7777
+#        scp:
+#          - uri: http://127.0.0.200:7777
 #    discovery:
 #      delegated: no
 #
@@ -89,37 +97,38 @@ nssf:
 #        client:
 #          scheme: https
 #          cacert: @sysconfdir@/open5gs/tls/ca.crt
-#
-#  o Override default configuration on individual servers and clients
 #    sbi:
-#      - scheme: https
-#        address: nssf.localdomain
-#        port: 7777
-#        private_key: @sysconfdir@/open5gs/tls/nssf.key
-#        cert: @sysconfdir@/open5gs/tls/nssf.crt
-#    nrf:
-#      - uri: https://nrf.localdomain:7777
-#        cacert: @sysconfdir@/open5gs/tls/ca.crt
-#    scp:
-#      - uri: https://scp.localdomain:7777
-#        cacert: @sysconfdir@/open5gs/tls/ca.crt
+#      server:
+#        - address: nssf.localdomain
+#      client:
+#        nrf:
+#          - uri: https://nrf.localdomain
+#        nsi:
+#          - uri: https://nrf.localdomain
+#            s_nssai:
+#              sst: 1
 #
 #  o Add client TLS verification
+#    defconfig:
+#      tls:
+#        server:
+#          scheme: https
+#          private_key: @sysconfdir@/open5gs/tls/nssf.key
+#          cert: @sysconfdir@/open5gs/tls/nssf.crt
+#          verify_client: true
+#          verify_client_cacert: @sysconfdir@/open5gs/tls/ca.crt
+#        client:
+#          scheme: https
+#          cacert: @sysconfdir@/open5gs/tls/ca.crt
+#          client_private_key: @sysconfdir@/open5gs/tls/nssf.key
+#          client_cert: @sysconfdir@/open5gs/tls/nssf.crt
 #    sbi:
-#      - scheme: https
-#        address: nssf.localdomain
-#        port: 7777
-#        private_key: @sysconfdir@/open5gs/tls/nssf.key
-#        cert: @sysconfdir@/open5gs/tls/nssf.crt
-#        verify_client: true
-#        verify_client_cacert: @sysconfdir@/open5gs/tls/ca.crt
-#    nrf:
-#      - uri: https://nrf.localdomain:7777
-#        cacert: @sysconfdir@/open5gs/tls/ca.crt
-#        client_private_key: @sysconfdir@/open5gs/tls/nssf.key
-#        client_cert: @sysconfdir@/open5gs/tls/nssf.crt
-#    scp:
-#      - uri: https://scp.localdomain:7777
-#        cacert: @sysconfdir@/open5gs/tls/ca.crt
-#        client_private_key: @sysconfdir@/open5gs/tls/nssf.key
-#        client_cert: @sysconfdir@/open5gs/tls/nssf.crt
+#      server:
+#        - address: nssf.localdomain
+#      client:
+#        nrf:
+#          - uri: https://nrf.localdomain
+#        nsi:
+#          - uri: https://nrf.localdomain
+#            s_nssai:
+#              sst: 1

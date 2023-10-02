@@ -32,7 +32,7 @@ int smf_sbi_open(void)
      * If the SMF is only running in 4G EPC mode,
      * it should not send NFRegister/NFStatusSubscribe messages to the NRF.
      */
-    if (ogs_list_count(&ogs_sbi_self()->server_list) == 0)
+    if (ogs_sbi_server_first() == NULL)
         return OGS_OK;
 
     /* Initialize SELF NF instance */
