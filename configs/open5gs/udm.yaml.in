@@ -28,8 +28,8 @@ udm:
         key: @sysconfdir@/open5gs/hnet/secp256r1-6.key
     sbi:
       server:
-      - address: 127.0.0.12
-        port: 7777
+        - address: 127.0.0.12
+          port: 7777
       client:
 #        nrf:
 #          - uri: http://127.0.0.10:7777
