@@ -638,7 +638,7 @@ int ogs_dbi_subscription_data(char *supi,
                                     while (bson_iter_next(&child5_iter)) {
                                         const char *child5_key =
                                             bson_iter_key(&child5_iter);
-                                        if (!strcmp(child5_key, "addr") &&
+                                        if (!strcmp(child5_key, "ipv4") &&
                                             BSON_ITER_HOLDS_UTF8(
                                                 &child5_iter)) {
                                             ogs_ipsubnet_t ipsub;
@@ -651,7 +651,7 @@ int ogs_dbi_subscription_data(char *supi,
                                                     ipsub.sub[0];
                                             }
                                         } else if (!strcmp(
-                                                    child5_key, "addr6") &&
+                                                    child5_key, "ipv6") &&
                                             BSON_ITER_HOLDS_UTF8(
                                                 &child5_iter)) {
                                             ogs_ipsubnet_t ipsub;
@@ -673,7 +673,7 @@ int ogs_dbi_subscription_data(char *supi,
                                     while (bson_iter_next(&child5_iter)) {
                                         const char *child5_key =
                                             bson_iter_key(&child5_iter);
-                                        if (!strcmp(child5_key, "addr") &&
+                                        if (!strcmp(child5_key, "ipv4") &&
                                             BSON_ITER_HOLDS_UTF8(
                                                 &child5_iter)) {
                                             ogs_ipsubnet_t ipsub;
@@ -686,7 +686,7 @@ int ogs_dbi_subscription_data(char *supi,
                                                     ipsub.sub[0];
                                             }
                                         } else if (!strcmp(
-                                                    child5_key, "addr6") &&
+                                                    child5_key, "ipv6") &&
                                             BSON_ITER_HOLDS_UTF8(
                                                 &child5_iter)) {
                                             ogs_ipsubnet_t ipsub;

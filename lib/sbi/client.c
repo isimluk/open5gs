@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2023 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -39,6 +39,7 @@ typedef struct connection_s {
     int num_of_header;
     char **headers;
     struct curl_slist *header_list;
+    struct curl_slist *resolve_list;
 
     char *content;
 
@@ -99,13 +100,15 @@ void ogs_sbi_client_final(void)
 }
 
 ogs_sbi_client_t *ogs_sbi_client_add(
-        OpenAPI_uri_scheme_e scheme, ogs_sockaddr_t *addr)
+        OpenAPI_uri_scheme_e scheme,
+        char *fqdn, uint16_t fqdn_port,
+        ogs_sockaddr_t *addr, ogs_sockaddr_t *addr6)
 {
     ogs_sbi_client_t *client = NULL;
     CURLM *multi = NULL;
 
     ogs_assert(scheme);
-    ogs_assert(addr);
+    ogs_assert(fqdn || addr || addr6);
 
     ogs_pool_alloc(&client_pool, &client);
     ogs_assert(client);
@@ -113,10 +116,27 @@ ogs_sbi_client_t *ogs_sbi_client_add(
 
     client->scheme = scheme;
 
+    client->insecure_skip_verify =
+        ogs_sbi_self()->tls.client.insecure_skip_verify;
+    if (ogs_sbi_self()->tls.client.cacert)
+        client->cacert = ogs_strdup(ogs_sbi_self()->tls.client.cacert);
+
+    if (ogs_sbi_self()->tls.client.private_key)
+        client->private_key =
+            ogs_strdup(ogs_sbi_self()->tls.client.private_key);
+    if (ogs_sbi_self()->tls.client.cert)
+        client->cert = ogs_strdup(ogs_sbi_self()->tls.client.cert);
+
     ogs_debug("ogs_sbi_client_add[%s]", OpenAPI_uri_scheme_ToString(scheme));
     OGS_OBJECT_REF(client);
 
-    ogs_assert(OGS_OK == ogs_copyaddrinfo(&client->node.addr, addr));
+    if (fqdn)
+        ogs_assert(client->fqdn = ogs_strdup(fqdn));
+    client->fqdn_port = fqdn_port;
+    if (addr)
+        ogs_assert(OGS_OK == ogs_copyaddrinfo(&client->addr, addr));
+    if (addr6)
+        ogs_assert(OGS_OK == ogs_copyaddrinfo(&client->addr6, addr6));
 
     client->t_curl = ogs_timer_add(
             ogs_app()->timer_mgr, multi_timer_expired, client);
@@ -146,15 +166,21 @@ ogs_sbi_client_t *ogs_sbi_client_add(
 
 void ogs_sbi_client_remove(ogs_sbi_client_t *client)
 {
-    ogs_sockaddr_t *addr = NULL;
     char buf[OGS_ADDRSTRLEN];
 
     ogs_assert(client);
 
-    addr = client->node.addr;
-    ogs_assert(addr);
-    ogs_debug("ogs_sbi_client_remove() [%s:%d]",
-                OGS_ADDR(addr, buf), OGS_PORT(addr));
+    ogs_debug("ogs_sbi_client_remove()");
+    if (client->fqdn)
+        ogs_debug("- fqdn [%s:%d]", client->fqdn, client->fqdn_port);
+    if (client->resolve)
+        ogs_debug("- resolve [%s]", client->resolve);
+    if (client->addr)
+        ogs_debug("- addr [%s:%d]",
+                OGS_ADDR(client->addr, buf), OGS_PORT(client->addr));
+    if (client->addr6)
+        ogs_debug("- addr6 [%s:%d]",
+                OGS_ADDR(client->addr6, buf), OGS_PORT(client->addr6));
 
     /* ogs_sbi_client_t is always created with reference context */
     if (OGS_OBJECT_IS_REF(client)) {
@@ -173,8 +199,22 @@ void ogs_sbi_client_remove(ogs_sbi_client_t *client)
     ogs_assert(client->multi);
     curl_multi_cleanup(client->multi);
 
-    ogs_assert(client->node.addr);
-    ogs_freeaddrinfo(client->node.addr);
+    if (client->cacert)
+        ogs_free(client->cacert);
+    if (client->private_key)
+        ogs_free(client->private_key);
+    if (client->cert)
+        ogs_free(client->cert);
+
+    if (client->fqdn)
+        ogs_free(client->fqdn);
+    if (client->resolve)
+        ogs_free(client->resolve);
+
+    if (client->addr)
+        ogs_freeaddrinfo(client->addr);
+    if (client->addr6)
+        ogs_freeaddrinfo(client->addr6);
 
     ogs_pool_free(&client_pool, client);
 }
@@ -188,17 +228,39 @@ void ogs_sbi_client_remove_all(void)
 }
 
 ogs_sbi_client_t *ogs_sbi_client_find(
-        OpenAPI_uri_scheme_e scheme, ogs_sockaddr_t *addr)
+        OpenAPI_uri_scheme_e scheme,
+        char *fqdn, uint16_t fqdn_port,
+        ogs_sockaddr_t *addr, ogs_sockaddr_t *addr6)
 {
     ogs_sbi_client_t *client = NULL;
 
     ogs_assert(scheme);
-    ogs_assert(addr);
 
     ogs_list_for_each(&ogs_sbi_self()->client_list, client) {
-        if (client->scheme == scheme &&
-            ogs_sockaddr_is_equal(client->node.addr, addr) == true)
-            break;
+        if (client->scheme != scheme)
+            continue;
+
+        if (fqdn) {
+            if (!client->fqdn)
+                continue;
+            if (strcmp(client->fqdn, fqdn) != 0 ||
+                client->fqdn_port != fqdn_port)
+                continue;
+        }
+        if (addr) {
+            if (!client->addr)
+                continue;
+            if (ogs_sockaddr_is_equal(client->addr, addr) == false)
+                continue;
+        }
+        if (addr6) {
+            if (!client->addr6)
+                continue;
+            if (ogs_sockaddr_is_equal(client->addr6, addr6) == false)
+                continue;
+        }
+
+        break;
     }
 
     return client;
@@ -384,22 +446,18 @@ static connection_t *connection_add(
 
     curl_easy_setopt(conn->easy, CURLOPT_BUFFERSIZE, OGS_MAX_SDU_LEN);
 
-    if (ogs_app()->sbi.client.no_tls == false) {
-        ogs_assert(ogs_app()->sbi.client.key);
-        ogs_assert(ogs_app()->sbi.client.cert);
-        curl_easy_setopt(conn->easy, CURLOPT_SSLKEY,
-                ogs_app()->sbi.client.key);
-        curl_easy_setopt(conn->easy, CURLOPT_SSLCERT,
-                ogs_app()->sbi.client.cert);
-
-        if (ogs_app()->sbi.client.no_verify == false) {
-            if (ogs_app()->sbi.client.cacert) {
-                curl_easy_setopt(conn->easy, CURLOPT_CAINFO,
-                        ogs_app()->sbi.client.cacert);
-            }
-        } else {
+    if (client->scheme == OpenAPI_uri_scheme_https) {
+        if (client->insecure_skip_verify) {
             curl_easy_setopt(conn->easy, CURLOPT_SSL_VERIFYPEER, 0);
             curl_easy_setopt(conn->easy, CURLOPT_SSL_VERIFYHOST, 0);
+        } else {
+            if (client->cacert)
+                curl_easy_setopt(conn->easy, CURLOPT_CAINFO, client->cacert);
+        }
+
+        if (client->private_key && client->cert) {
+            curl_easy_setopt(conn->easy, CURLOPT_SSLKEY, client->private_key);
+            curl_easy_setopt(conn->easy, CURLOPT_SSLCERT, client->cert);
         }
     }
 
@@ -445,6 +503,11 @@ static connection_t *connection_add(
     ogs_list_add(&client->connection_list, conn);
 
     curl_easy_setopt(conn->easy, CURLOPT_URL, request->h.uri);
+
+    if (client->resolve) {
+        conn->resolve_list = curl_slist_append(NULL, client->resolve);
+        curl_easy_setopt(conn->easy, CURLOPT_RESOLVE, conn->resolve_list);
+    }
 
     curl_easy_setopt(conn->easy, CURLOPT_PRIVATE, conn);
     curl_easy_setopt(conn->easy, CURLOPT_WRITEFUNCTION, write_cb);
@@ -506,6 +569,8 @@ static void connection_free(connection_t *conn)
         ogs_free(conn->headers);
     }
     curl_slist_free_all(conn->header_list);
+
+    curl_slist_free_all(conn->resolve_list);
 
     if (conn->method)
         ogs_free(conn->method);
@@ -664,7 +729,7 @@ bool ogs_sbi_client_send_request(
     return true;
 }
 
-bool ogs_sbi_client_send_via_scp(
+bool ogs_sbi_client_send_via_scp_or_sepp(
         ogs_sbi_client_t *client, ogs_sbi_client_cb_f client_cb,
         ogs_sbi_request_t *request, void *data)
 {
@@ -675,11 +740,13 @@ bool ogs_sbi_client_send_via_scp(
 
     if (request->h.uri) {
         /*
-         * In case of indirect communication using SCP,
-         * If the full URI is already defined, change full URI to SCP as below.
+         * In case of the communication using SCP or SEPP,
+         * If the full URI is already defined,
+         * change full URI to SCP or SEPP as below.
          *
          * OLD: http://127.0.0.5:7777/nnrf-nfm/v1/nf-status-notify
-         * NEW: https://scp.open5gs.org/nnrf-nfm/v1/nf-status-notify
+         * SCP: https://scp.open5gs.org/nnrf-nfm/v1/nf-status-notify
+         * SEPP: https://sepp.open5gs.org/nnrf-nfm/v1/nf-status-notify
          */
         char *apiroot = NULL;
         char *path = NULL;
